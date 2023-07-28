@@ -652,3 +652,7 @@ def with_backend(backend: str, cached: bool = False):
     except KeyError:
         compiled_backends[backend] = [ivy_pack]
     return ivy_pack
+
+
+def current_dist_backend():
+    ...
