@@ -761,6 +761,7 @@ from ivy.utils.backend import (
     backend_stack,
     choose_random_backend,
     unset_backend,
+    current_dist_backend,
 )
 from . import func_wrapper
 from .utils import assertions, exceptions, verbosity
