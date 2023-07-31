@@ -27,7 +27,4 @@ def init_dist(
     context.reset_context()
     context.world_size = world_size
     context.multi_machine = multi_machine
-
-
-if __name__ == "__main__":
-    print(dir(i_dist))
+    context.default_group = i_dist.Group(range(context.world_size))

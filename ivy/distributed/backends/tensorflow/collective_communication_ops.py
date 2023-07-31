@@ -16,7 +16,9 @@ def _to_all_devices(x: Union[tf.Variable, tf.Tensor]):
 
 
 def all_reduce(
-    x: Union[tf.Variable, tf.Tensor], op_handler: i_dist.OpHandler
+    x: Union[tf.Variable, tf.Tensor],
+    op_handler: i_dist.OpHandler,
+    group: i_dist.Group = None,
 ) -> Union[tf.Variable, tf.Tensor]:
     stratagy: tf.distribute.Strategy = context.global_stratagy
     reduced_x = stratagy.reduce(op_handler.tensorflow_op, x)
@@ -24,7 +26,10 @@ def all_reduce(
 
 
 def all_gather(
-    x: Union[tf.Variable, tf.Tensor], axis: int, tiled: bool = False
+    x: Union[tf.Variable, tf.Tensor],
+    axis: int = 0,
+    group: i_dist.Group = None,
+    tiled: bool = False,
 ) -> Union[tf.Variable, tf.Tensor]:
     num_devices = context.world_size
     stratagy: tf.distribute.Strategy = context.global_stratagy
@@ -36,6 +41,6 @@ def all_gather(
 
 
 def all_to_all(
-    x: Union[tf.Variable, tf.Tensor], axis: int
+    x: Union[tf.Variable, tf.Tensor], axis: int = 0, group: i_dist.Group = None
 ) -> Union[tf.Variable, tf.Tensor]:
     ...

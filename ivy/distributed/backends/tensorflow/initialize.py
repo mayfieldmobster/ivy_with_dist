@@ -36,6 +36,7 @@ def init_dist(
     context.reset_context()
     context.world_size = world_size
     context.multi_machine = multi_machine
-    context.global_strategy_type = type(strategy)
-    context.global_stratagy = strategy
-    context.global_cluster_resolver = cluster_resolver
+    context.default_strategy_type = type(strategy)
+    context.default_strategy = strategy
+    context.default_cluster_resolver = cluster_resolver
+    context.default_group = i_dist.Group(range(context.world_size))

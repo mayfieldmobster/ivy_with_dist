@@ -1,12 +1,15 @@
-import tensorflow as tf
-
 import ivy
 import ivy.distributed as i_dist
 
 
 class TFGroupMixin:
     def ranks_to_tf_group(self):
+        import tensorflow as tf
+
         context = i_dist.ParallelContext()
+
+        if len(self.ranks) == context.world_size:
+            return context.default_strategy
 
         if ivy.verbosity.level > 0:
             m = "Tensorflow only supports groups if strategy is MirroredStrategy\n"

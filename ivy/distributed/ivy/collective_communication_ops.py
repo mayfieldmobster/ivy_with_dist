@@ -5,6 +5,10 @@ from enum import Enum
 from functools import partial
 
 import ivy
+import ivy.distributed as i_dist
+from ivy.distributed.func_wrappers import group_handler
+
+context = i_dist.ParallelContext()
 
 
 class IvyReduceOp(Enum):
@@ -62,18 +66,51 @@ class OpHandler:
             return partial(ivy.min, axis=0)
 
 
+@group_handler
 def all_reduce(
-    x: Union[ivy.Array, ivy.NativeArray], op: Union[str, IvyReduceOp]
+    x: Union[ivy.Array, ivy.NativeArray],
+    op: Union[str, IvyReduceOp],
+    group: Union[i_dist.Group, None] = None,
 ) -> ivy.Array:
     op_handler = OpHandler(op)
-    return ivy.current_dist_backend().all_reduce(x, op_handler)
+    return ivy.current_dist_backend().all_reduce(x, op_handler, group)
 
 
+@group_handler
 def all_gather(
-    x: Union[ivy.Array, ivy.NativeArray], axis: int, tiled: bool = False
+    x: Union[ivy.Array, ivy.NativeArray],
+    axis: int = 0,
+    group: Union[i_dist.Group, None] = None,
+    tiled: bool = False,
 ) -> ivy.Array:
-    return ivy.current_dist_backend().all_gather(x, axis, tiled)
+    return ivy.current_dist_backend().all_gather(x, axis, group, tiled)
 
 
-def all_to_all(x: Union[ivy.Array, ivy.NativeArray], axis: int) -> ivy.Array:
-    return ivy.current_dist_backend().all_gather(x, axis)
+@group_handler
+def all_to_all(
+    x: Union[ivy.Array, ivy.NativeArray],
+    axis: int = 0,
+    group: Union[i_dist.Group, None] = None,
+) -> ivy.Array:
+    return ivy.current_dist_backend().all_gather(x, axis, group)
+
+
+@group_handler
+def gather(
+    x: Union[ivy.Array, ivy.NativeArray],
+    axis: int = 0,
+    group: Union[i_dist.Group, None] = None,
+    tiled: bool = False,
+    dst: int = 0,
+):
+    ...
+
+
+@group_handler
+def reduce(
+    x: Union[ivy.Array, ivy.NativeArray],
+    op: Union[str, IvyReduceOp],
+    group: Union[i_dist.Group, None],
+    dst: int = 0,
+):
+    ...

@@ -11,9 +11,10 @@ import ivy.distributed as i_dist
 # TODO accept nestwed inputs cmap(f)((x,y),z)
 def data_frag(*args, in_axes: Union[int, tuple], num_devices: int):
     new_args = [[] for _ in range(num_devices)]
+    axes = (in_axes,) * len(args) if isinstance(in_axes, int) else in_axes
     if len(in_axes) != len(args):
         raise ValueError("len of in_axes must match len of args")
-    for d, a in zip(in_axes, args):
+    for d, a in zip(axes, args):
         if not isinstance(a, torch.Tensor):
             raise TypeError("Only tensors can be mapped")
         if d is not None:
@@ -51,12 +52,6 @@ def pmap(
     rank = dist.get_rank(group=group)
     num_processes = dist.get_world_size(group=group)
 
-    if isinstance(out_axes, int):
-        out_axes = (out_axes,) * num_processes
-
-    if isinstance(in_axes, int):
-        in_axes = (in_axes,) * num_processes
-
     @wraps(fn)
     def wrapper(*args, **kwargs):
         if rank == -1:
@@ -64,15 +59,19 @@ def pmap(
             return None
 
         if num_processes == 1:
-            return torch.vmap(fn, in_dims=in_axes, out_dims=out_axes)(*args, **kwargs)
+            return ivy.vmap(fn, in_axes=in_axes, out_axes=out_axes)(*args, **kwargs)
 
         # Run Function
         new_args = data_frag(*args, in_axes=in_axes, num_devices=num_processes)
         data_to_device(*new_args[rank])
-        func_out = torch.vmap(fn, in_dims=in_axes, out_dims=out_axes)(
+        func_out = ivy.vmap(fn, in_axes=in_axes, out_axes=out_axes)(
             *new_args[rank], **kwargs
         )
         func_out = scalar_to_vec(*func_out)
+
+        out_axes_ = (
+            (out_axes,) * len(func_out) if isinstance(out_axes, int) else out_axes
+        )
 
         # collect function outputs
         # TODO cleanup (lots of repetitive code)
@@ -83,18 +82,18 @@ def pmap(
                     for i in func_out
                 ]
                 for i in range(len(output_empties)):
-                    ivy.all_gather(output_empties[i], func_out[i], group=group)
+                    i_dist.all_gather(output_empties[i], func_out[i], group=group)
                     torch.cuda.synchronize()
                 for i in range(len(out_axes)):
-                    output_empties[i] = torch.cat(output_empties[i], dim=out_axes[i])
+                    output_empties[i] = torch.cat(output_empties[i], dim=out_axes_[i])
                 return tuple(output_empties)
             else:
                 output_empties = [
                     torch.empty_like(func_out) for _ in range(num_processes)
                 ]
-                ivy.all_gather(output_empties, func_out, group=group)
+                i_dist.all_gather(output_empties, func_out, group=group)
                 torch.cuda.synchronize()
-                return torch.cat(output_empties, dim=out_axes)
+                return torch.cat(output_empties, dim=out_axes_)
         else:
             # TODO replace dist.gather with ivy.gather once supported
             if rank == dst:
@@ -108,9 +107,9 @@ def pmap(
                             func_out[i], output_empties[i], dst=dst, group=group
                         )
                         torch.cuda.synchronize()
-                    for i in range(len(out_axes)):
+                    for i in range(len(out_axes_)):
                         output_empties[i] = torch.cat(
-                            output_empties[i], dim=out_axes[i]
+                            output_empties[i], dim=out_axes_[i]
                         )
                     return tuple(output_empties)
                 else:
@@ -119,7 +118,7 @@ def pmap(
                     ]
                     dist.gather(func_out, output_empties, dst=dst, group=group)
                     torch.cuda.synchronize()
-                    return torch.cat(output_empties, dim=out_axes)
+                    return torch.cat(output_empties, dim=out_axes_)
             else:
                 if isinstance(func_out, tuple):
                     for i in range(len(func_out)):
