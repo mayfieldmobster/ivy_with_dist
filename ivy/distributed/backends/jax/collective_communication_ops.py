@@ -26,3 +26,22 @@ def all_gather(
 
 def all_to_all(x: JaxArray, axis: int = 0, group: i_dist.Group = None) -> JaxArray:
     ...
+
+
+def gather(
+    x: JaxArray,
+    axis: int = 0,
+    group: i_dist.Group = None,
+    tiled: bool = False,
+    dst: int = 0,
+):
+    ...
+
+
+def reduce(
+    x: JaxArray,
+    op: i_dist.OpHandler,
+    group: i_dist.Group = None,
+    dst: int = 0,
+):
+    ...

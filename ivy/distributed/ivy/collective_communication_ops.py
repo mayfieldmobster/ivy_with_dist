@@ -73,7 +73,9 @@ def all_reduce(
     group: Union[i_dist.Group, None] = None,
 ) -> ivy.Array:
     op_handler = OpHandler(op)
-    return ivy.current_dist_backend().all_reduce(x, op_handler, group)
+    return ivy.current_dist_backend().all_reduce(
+        x=x, op_handler=op_handler, group=group
+    )
 
 
 @group_handler
@@ -83,7 +85,9 @@ def all_gather(
     group: Union[i_dist.Group, None] = None,
     tiled: bool = False,
 ) -> ivy.Array:
-    return ivy.current_dist_backend().all_gather(x, axis, group, tiled)
+    return ivy.current_dist_backend().all_gather(
+        x=x, axis=axis, group=group, tiled=tiled
+    )
 
 
 @group_handler
@@ -92,7 +96,7 @@ def all_to_all(
     axis: int = 0,
     group: Union[i_dist.Group, None] = None,
 ) -> ivy.Array:
-    return ivy.current_dist_backend().all_gather(x, axis, group)
+    return ivy.current_dist_backend().all_gather(x=x, axis=axis, group=group)
 
 
 @group_handler
@@ -103,14 +107,14 @@ def gather(
     tiled: bool = False,
     dst: int = 0,
 ):
-    ...
+    ivy.current_dist_backend().gather(x=x, axis=axis, group=group, tiled=tiled, dst=dst)
 
 
 @group_handler
 def reduce(
     x: Union[ivy.Array, ivy.NativeArray],
     op: Union[str, IvyReduceOp],
-    group: Union[i_dist.Group, None],
+    group: Union[i_dist.Group, None] = None,
     dst: int = 0,
 ):
-    ...
+    ivy.current_dist_backend().gather(x=x, op=op, group=group, dst=dst)

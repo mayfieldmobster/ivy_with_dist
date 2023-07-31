@@ -54,10 +54,6 @@ def pmap(
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        if rank == -1:
-            # process not in group
-            return None
-
         if num_processes == 1:
             return ivy.vmap(fn, in_axes=in_axes, out_axes=out_axes)(*args, **kwargs)
 
@@ -74,61 +70,30 @@ def pmap(
         )
 
         # collect function outputs
-        # TODO cleanup (lots of repetitive code)
+        # TODO cleanup (repetitive code)
         if dst == -1:
             if isinstance(func_out, tuple):
-                output_empties = [
-                    [torch.empty_like(i) for _ in range(num_processes)]
-                    for i in func_out
-                ]
-                for i in range(len(output_empties)):
-                    i_dist.all_gather(output_empties[i], func_out[i], group=group)
-                    torch.cuda.synchronize()
-                for i in range(len(out_axes)):
-                    output_empties[i] = torch.cat(output_empties[i], dim=out_axes_[i])
-                return tuple(output_empties)
+                out = []
+                for i in range(len(func_out)):
+                    out.append(
+                        i_dist.all_gather(func_out[i], out_axes_[i], group=group)
+                    )
+                return tuple(out)
             else:
-                output_empties = [
-                    torch.empty_like(func_out) for _ in range(num_processes)
-                ]
-                i_dist.all_gather(output_empties, func_out, group=group)
-                torch.cuda.synchronize()
-                return torch.cat(output_empties, dim=out_axes_)
+                return i_dist.all_gather(func_out, out_axes_[0], group=group)
         else:
-            # TODO replace dist.gather with ivy.gather once supported
-            if rank == dst:
-                if isinstance(func_out, tuple):
-                    output_empties = [
-                        [torch.empty_like(i) for _ in range(num_processes)]
-                        for i in func_out
-                    ]
-                    for i in range(len(output_empties)):
-                        dist.gather(
-                            func_out[i], output_empties[i], dst=dst, group=group
+            if isinstance(func_out, tuple):
+                out = []
+                for i in range(len(func_out)):
+                    out.append(
+                        i_dist.gather(
+                            func_out[i], out_axes_[i], group=group, tiled=True, dst=dst
                         )
-                        torch.cuda.synchronize()
-                    for i in range(len(out_axes_)):
-                        output_empties[i] = torch.cat(
-                            output_empties[i], dim=out_axes_[i]
-                        )
-                    return tuple(output_empties)
-                else:
-                    output_empties = [
-                        torch.empty_like(func_out) for _ in range(num_processes)
-                    ]
-                    dist.gather(func_out, output_empties, dst=dst, group=group)
-                    torch.cuda.synchronize()
-                    return torch.cat(output_empties, dim=out_axes_)
+                    )
+
+                    return tuple(out)
             else:
-                if isinstance(func_out, tuple):
-                    for i in range(len(func_out)):
-                        dist.gather(func_out[i], dst=dst, group=group)
-                        torch.cuda.synchronize()
-                    return None
-                else:
-                    dist.gather(func_out, dst=dst, group=group)
-                    torch.cuda.synchronize()
-                    return None
+                return i_dist.gather(func_out, out_axes_[0], group=group, dst=dst)
 
     return wrapper
 
