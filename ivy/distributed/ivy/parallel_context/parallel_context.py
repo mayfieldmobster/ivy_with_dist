@@ -8,3 +8,6 @@ class ParallelContext(dict, metaclass=SingletonMetaClass):
 
     def reset_context(self):
         self.clear()
+
+    def get_global_rank(self):
+        ...

@@ -1,6 +1,7 @@
 from typing import Optional, Union, Sequence
 
 import jax
+import mpi4jax
 
 import ivy.distributed as i_dist
 
@@ -21,8 +22,11 @@ def init_dist(
             local_device_ids=local_device_ids,
         )
 
+    token = mpi4jax.barrier()
+
     context = i_dist.ParallelContext()
     context.reset_context()
     context.world_size = world_size
     context.multi_machine = multi_machine
+    context.xla_token = token
     context.default_group = i_dist.Group(range(context.world_size))

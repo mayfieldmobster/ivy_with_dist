@@ -40,10 +40,23 @@ def all_gather(
     return out
 
 
-def all_to_all(x: torch.Tensor, axis: int = 0, group: i_dist.Group = None) -> ivy.Array:
-    out_shape = x.shape
+def all_to_all(
+    x: torch.Tensor,
+    output_split_sizes=None,
+    input_split_sizes=None,
+    group: i_dist.Group = None,
+) -> ivy.Array:
+    input_tensor = x.contiguous()
+    out_shape = input_tensor.shape
     tensor_out = torch.empty(out_shape, dtype=x.dtype, device=x.device)
-    work = dist.all_to_all(tensor_out, x, group=group, async_op=True)
+    work = dist.all_to_all(
+        tensor_out,
+        input_tensor,
+        output_split_sizes=output_split_sizes,
+        input_split_sizes=input_split_sizes,
+        group=group,
+        async_op=True,
+    )
     work.wait()
     return tensor_out
 
@@ -61,7 +74,7 @@ def gather(
     rank = dist.get_group_rank(group, int)
     if num_processes == 1:
         out = x
-    tensor_in = x.contiguous() if axis == 0 else x.transpose(0, axis).contiguous()
+    tensor_in = x.contiguous() if axis == 0 else x.transpose(0, axis)
 
     if dst == rank:
         tensor_out = [

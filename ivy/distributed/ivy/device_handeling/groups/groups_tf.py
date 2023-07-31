@@ -2,6 +2,18 @@ import ivy
 import ivy.distributed as i_dist
 
 
+# TODO explore nested stratagies
+# ```python
+# import tensorflow as tf
+# node_strat = tf.distribute.MultiWorkerMirroredStrategy
+# with node_strat.scope():
+#    gpu_strat = tf.distrubute.MirroredStrategy
+#    with gpu_strat.scope():
+#        global_rank = node_strat.replica_id_in_sync_group
+#        local_rank = gpu_strat.replica_id_in_sync_group
+# ```
+
+
 class TFGroupMixin:
     def ranks_to_tf_group(self):
         import tensorflow as tf

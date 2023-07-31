@@ -2,7 +2,6 @@ from typing import (
     Union,
 )
 from enum import Enum
-from functools import partial
 
 import ivy
 import ivy.distributed as i_dist
@@ -55,15 +54,17 @@ class OpHandler:
 
     @property
     def jax_op(self):
+        import mpi4py
+
         op_name = self.op.name
         if op_name == "SUM":
-            return partial(ivy.sum, axis=0)
+            return mpi4py.MPI.SUM
         elif op_name == "MEAN":
-            return partial(ivy.mean, axis=0)
+            return mpi4py.MPI.SUM
         elif op_name == "MAX":
-            return partial(ivy.max, axis=0)
+            return mpi4py.MPI.MAX
         elif op_name == "MIN":
-            return partial(ivy.min, axis=0)
+            return mpi4py.MPI.MIN
 
 
 @group_handler
@@ -93,10 +94,13 @@ def all_gather(
 @group_handler
 def all_to_all(
     x: Union[ivy.Array, ivy.NativeArray],
-    axis: int = 0,
+    output_split_sizes=None,
+    input_split_sizes=None,
     group: Union[i_dist.Group, None] = None,
 ) -> ivy.Array:
-    return ivy.current_dist_backend().all_gather(x=x, axis=axis, group=group)
+    return ivy.current_dist_backend().all_gather(
+        x=x, output_split_sizes=None, input_split_sizes=None, group=group
+    )
 
 
 @group_handler
