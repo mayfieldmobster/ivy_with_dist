@@ -1,4 +1,6 @@
 from typing import Optional, Union, Sequence
+import mpi4py.MPI as MPI
+import os
 
 import jax
 import mpi4jax
@@ -21,6 +23,11 @@ def init_dist(
             process_id=process_id,
             local_device_ids=local_device_ids,
         )
+    mpi_comm = MPI.COMM_WORLD
+    global_rank = mpi_comm.Get_rank()
+    world_size = mpi_comm.Get_size()
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(global_rank)
 
     token = mpi4jax.barrier()
 
@@ -28,5 +35,6 @@ def init_dist(
     context.reset_context()
     context.world_size = world_size
     context.multi_machine = multi_machine
+    context.global_rank = global_rank
     context.xla_token = token
     context.default_group = i_dist.Group(range(context.world_size))

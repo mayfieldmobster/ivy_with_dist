@@ -14,7 +14,10 @@ def all_reduce(
 ) -> JaxArray:
     comm = group.ranks_to_jax_devices
     op = op_handler.jax_op
-    return token_wrapper(mpi4jax.allreduce)(x, op=op, comm=comm)
+    out = token_wrapper(mpi4jax.allreduce)(x, op=op, comm=comm)
+    if op_handler.op.name == "MEAN":
+        out = out / comm.Get_size()
+    return out
 
 
 def all_gather(
@@ -57,8 +60,13 @@ def gather(
 
 def reduce(
     x: JaxArray,
-    op: i_dist.OpHandler,
+    op_handler: i_dist.OpHandler,
     group: i_dist.Group = None,
     dst: int = 0,
 ):
-    ...
+    comm = group.ranks_to_jax_devices
+    op = op_handler.jax_op
+    out = token_wrapper(mpi4jax.reduce)(x, op=op, comm=comm, root=dst)
+    if op_handler.op.name == "MEAN" and comm.rank == dst:
+        out = out / comm.Get_size()
+    return out
