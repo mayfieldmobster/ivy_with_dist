@@ -104,6 +104,11 @@ setup(
         "Source": "https://github.com/unifyai/ivy",
     },
     include_package_data=True,
+    entry_points={
+        "console_scripts": [
+            "ivyrun = ivy.distributed.cli.cli:run",
+        ]
+    },
     packages=setuptools.find_packages(),
     install_requires=[
         _strip(line)
