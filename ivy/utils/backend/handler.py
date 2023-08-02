@@ -35,6 +35,10 @@ class ContextManager:
 _backends_subpackage_path = "ivy.functional.backends"
 _backend_dict = dict()
 _backend_reverse_dict = dict()
+_dist_backends_subpackage_path = "ivy.distributed.backends"
+_dist_backend_dict = dict()
+_dist_backend_reverse_dict = dict()
+
 
 for backend in os.listdir(
     os.path.join(
@@ -47,6 +51,18 @@ for backend in os.listdir(
     backend_path = f"{_backends_subpackage_path}.{backend}"
     _backend_dict[backend] = backend_path
     _backend_reverse_dict[backend_path] = backend
+
+for backend in os.listdir(
+    os.path.join(
+        ivy.__path__[0].rpartition(os.path.sep)[0],  # type: ignore
+        _dist_backends_subpackage_path.replace(".", os.path.sep),
+    )
+):
+    if backend.startswith("__"):
+        continue
+    backend_path = f"{_dist_backends_subpackage_path}.{backend}"
+    _dist_backend_dict[backend] = backend_path
+    _dist_backend_reverse_dict[backend_path] = backend
 
 
 # Backend Getting/Setting #
@@ -655,4 +671,42 @@ def with_backend(backend: str, cached: bool = False):
 
 
 def current_dist_backend():
-    ...
+    """
+    Return the current dist backend. Priorities: global_backend > argument's backend.
+
+    Parameters
+    ----------
+    *args/**kwargs
+        the arguments from which to try to infer the backend, when there is
+        no globally set backend.
+
+    Returns
+    -------
+    ret
+        Ivy's current dist backend.
+
+    Examples
+    --------
+    If no global backend is set, then the backend is inferred from the arguments:
+
+    >>> import numpy as np
+    >>> x = np.array([2.0])
+    >>> print(ivy.current_backend(x))
+    <module 'ivy.functional.backends.numpy' from '/ivy/ivy/functional/backends/numpy/__init__.py'>   # noqa
+
+    The global backend set in set_backend has priority over any arguments
+    passed to current_backend:
+
+    >>> import numpy as np
+    >>> ivy.set_backend("jax")
+    >>> x = np.array([2.0])
+    >>> print(ivy.current_backend(x))
+    <module 'ivy.functional.backends.jax' from '/ivy/ivy/functional/backends/jax/__init__.py'>   # noqa
+    """
+    global implicit_backend
+    # if a global backend has been set with
+    # set_backend then this will be returned
+    # if no global backend exists, we try to infer
+    # the backend from the arguments
+    print(_dist_backend_dict[ivy.backend])
+    return importlib.import_module(_dist_backend_dict[ivy.backend])

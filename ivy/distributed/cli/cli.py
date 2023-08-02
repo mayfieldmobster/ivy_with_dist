@@ -2,25 +2,18 @@ import click
 import os
 import sys
 
-from .run_multi_host import MultiHostRun
-from .host_info import HostInfo
+from ivy.distributed.cli.run_multi_host import MultiHostRun
+from ivy.distributed.cli.host_info import HostInfo
 import ivy
 
 
-@click.group()
-def ivy_cli():
-    pass
-
-
-ivy_cli.add_command()
-
-
-@click.command
+@click.command()
 @click.option(
     "-B",
     "-backend",
     "--backend",
-    type="str",
+    type=str,
+    default=None,
     help="backend used to determine which launcher is appropriate",
 )
 @click.option(
@@ -54,7 +47,7 @@ ivy_cli.add_command()
     ),
 )
 @click.option(
-    "--master_addr",
+    "--master_address",
     type=str,
     default="127.0.0.1",
     help=(
@@ -85,6 +78,8 @@ def run(
     user_script,
     user_args,
 ):
+    if backend is None:
+        raise Exception("Backend Must Be Given to ivyrun")
     ivy.set_backend(backend)
     host_info = HostInfo()
     if not user_script.endswith(".py"):
@@ -163,3 +158,7 @@ def run(
             user_script=user_script,
             user_args=user_args,
         )
+
+
+if __name__ == "__main__":
+    run()

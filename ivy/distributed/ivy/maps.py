@@ -6,7 +6,7 @@ from typing import (
 )
 
 import ivy
-import ivy.distributed as i_dist
+from ivy.distributed.ivy.device_handeling.groups import Group
 
 
 def pmap(
@@ -15,7 +15,7 @@ def pmap(
     *,
     in_axes: Union[int, Sequence[tuple]] = 0,
     out_axes: Union[int, Sequence[tuple]] = 0,
-    group: Union[i_dist.Group, None] = None,
+    group: Union[Group, None] = None,
     dst: int = 0
 ) -> Callable:
     return ivy.current_dist_backend().pmap(

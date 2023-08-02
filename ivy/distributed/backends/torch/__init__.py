@@ -6,5 +6,3 @@ from . import maps
 from .maps import *
 from . import p2p
 from .p2p import *
-from . import utils
-from utils import *

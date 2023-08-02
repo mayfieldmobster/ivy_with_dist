@@ -771,6 +771,7 @@ from .functional import *
 from . import stateful
 from .stateful import *
 from ivy.utils.inspection import fn_array_spec, add_array_specs
+from . import distributed as distributed
 
 add_array_specs()
 

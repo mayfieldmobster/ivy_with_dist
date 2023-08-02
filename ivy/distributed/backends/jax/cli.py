@@ -15,7 +15,10 @@ def launch(
     options = []
     num_processes = num_nodes * nproc_per_node
     if hosts is not None:
-        options.append(f"-H {hosts}")
+        workers = ""
+        for host in hosts.split(","):
+            workers += f"{host}:{nproc_per_node}"
+        options.append(f"-H {workers}")
     elif hostfile is not None:
         options.append(f"--hostfile {hostfile}")
 

@@ -15,7 +15,7 @@ context = i_dist.ParallelContext
 def all_reduce(
     x: torch.Tensor, op_handler: i_dist.OpHandler, group: i_dist.Group = None
 ) -> torch.Tensor:
-    op = i_dist.op_handler.torch_op
+    op = op_handler.torch_op
     group = group.ranks_to_torch_group()
     work = dist.all_reduce(x, op, group=group, async_op=True)
     work.wait()
@@ -46,6 +46,8 @@ def all_to_all(
     input_split_sizes=None,
     group: i_dist.Group = None,
 ) -> ivy.Array:
+    if isinstance(group, i_dist.Group):
+        group = group.ranks_to_torch_group()
     input_tensor = x.contiguous()
     out_shape = input_tensor.shape
     tensor_out = torch.empty(out_shape, dtype=x.dtype, device=x.device)
@@ -68,12 +70,13 @@ def gather(
     tiled: bool = False,
     dst: int = 0,
 ):
-    group = group.ranks_to_torch_group()
+    if isinstance(group, i_dist.Group):
+        group = group.ranks_to_torch_group()
     num_processes = group.size()
     # TODO add a method of getting process rank
     rank = dist.get_group_rank(group, int)
     if num_processes == 1:
-        out = x
+        return x
     tensor_in = x.contiguous() if axis == 0 else x.transpose(0, axis)
 
     if dst == rank:
@@ -92,3 +95,17 @@ def gather(
         work = dist.gather(tensor_in, dst=dst, group=group, async_op=True)
         work.wait()
         return True
+
+
+def reduce(
+    x: torch.Tensor,
+    op_handler: i_dist.OpHandler,
+    group: Union[i_dist.Group, dist.ProcessGroup],
+    dst: int = 0,
+):
+    if isinstance(group, i_dist.Group):
+        group = group.ranks_to_torch_group()
+    op = op_handler.torch_op
+    work = dist.reduce(x, dst=dst, op=op, group=group, async_op=True)
+    work.wait()
+    return x

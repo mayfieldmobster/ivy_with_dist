@@ -1,5 +1,5 @@
-class JaxGroupMixin:
-    def ranks_to_jax_group(self):
+class NumpyGroupMixin:
+    def ranks_to_MPI_comm(self):
         import mpi4py.MPI as MPI
 
         comm = MPI.COMM_WORLD

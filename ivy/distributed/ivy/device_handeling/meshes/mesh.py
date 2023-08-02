@@ -1,6 +1,6 @@
 from typing import Sequence
 
-import ivy.distributed as i_dist
+from ivy.distributed.ivy.device_handeling.groups import Group
 
 
 def _prod(*args):
@@ -11,7 +11,7 @@ def _prod(*args):
 
 
 class Mesh:
-    def __init__(self, shape: Sequence[int], group: i_dist.Group):
+    def __init__(self, shape: Sequence[int], group: Group):
         if len(group.ranks) != _prod(*shape):
             # TODO update error type
             raise Exception("shape should be able to fit all devices in group")
@@ -20,9 +20,7 @@ class Mesh:
 
 
 class NamedMesh(Mesh):
-    def __init__(
-        self, shape: Sequence[int], group: i_dist.Group, axis_names: Sequence[str]
-    ):
+    def __init__(self, shape: Sequence[int], group: Group, axis_names: Sequence[str]):
         if len(shape) != len(axis_names):
             raise Exception("number of axis must equal number of names")
         super().__init__(shape=shape, group=group)
@@ -30,7 +28,7 @@ class NamedMesh(Mesh):
 
 
 class MpDpMesh(NamedMesh):
-    def __init__(self, shape: Sequence[int], group: i_dist.Group):
+    def __init__(self, shape: Sequence[int], group: Group):
         if len(shape) != 2:
             raise Exception("shape must only have 2 axis eg (4,2)")
         axis_names = ("dp", "mp")

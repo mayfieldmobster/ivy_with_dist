@@ -4,10 +4,8 @@ from typing import (
 from enum import Enum
 
 import ivy
-import ivy.distributed as i_dist
+from ivy.distributed.ivy.device_handeling.groups import Group
 from ivy.distributed.func_wrappers import group_handler
-
-context = i_dist.ParallelContext()
 
 
 class IvyReduceOp(Enum):
@@ -66,12 +64,26 @@ class OpHandler:
         elif op_name == "MIN":
             return mpi4py.MPI.MIN
 
+    @property
+    def numpy_op(self):
+        import mpi4py
+
+        op_name = self.op.name
+        if op_name == "SUM":
+            return mpi4py.MPI.SUM
+        elif op_name == "MEAN":
+            return mpi4py.MPI.SUM
+        elif op_name == "MAX":
+            return mpi4py.MPI.MAX
+        elif op_name == "MIN":
+            return mpi4py.MPI.MIN
+
 
 @group_handler
 def all_reduce(
     x: Union[ivy.Array, ivy.NativeArray],
     op: Union[str, IvyReduceOp],
-    group: Union[i_dist.Group, None] = None,
+    group: Union[Group, None] = None,
 ) -> ivy.Array:
     op_handler = OpHandler(op)
     return ivy.current_dist_backend().all_reduce(
@@ -83,7 +95,7 @@ def all_reduce(
 def all_gather(
     x: Union[ivy.Array, ivy.NativeArray],
     axis: int = 0,
-    group: Union[i_dist.Group, None] = None,
+    group: Union[Group, None] = None,
     tiled: bool = False,
 ) -> ivy.Array:
     return ivy.current_dist_backend().all_gather(
@@ -96,7 +108,7 @@ def all_to_all(
     x: Union[ivy.Array, ivy.NativeArray],
     output_split_sizes=None,
     input_split_sizes=None,
-    group: Union[i_dist.Group, None] = None,
+    group: Union[Group, None] = None,
 ) -> ivy.Array:
     return ivy.current_dist_backend().all_gather(
         x=x, output_split_sizes=None, input_split_sizes=None, group=group
@@ -107,7 +119,7 @@ def all_to_all(
 def gather(
     x: Union[ivy.Array, ivy.NativeArray],
     axis: int = 0,
-    group: Union[i_dist.Group, None] = None,
+    group: Union[Group, None] = None,
     tiled: bool = False,
     dst: int = 0,
 ):
@@ -118,7 +130,8 @@ def gather(
 def reduce(
     x: Union[ivy.Array, ivy.NativeArray],
     op: Union[str, IvyReduceOp],
-    group: Union[i_dist.Group, None] = None,
+    group: Union[Group, None] = None,
     dst: int = 0,
 ):
-    ivy.current_dist_backend().gather(x=x, op=op, group=group, dst=dst)
+    op_handler = OpHandler(op)
+    ivy.current_dist_backend().gather(x=x, op_handler=op_handler, group=group, dst=dst)
