@@ -9,3 +9,5 @@ diskcache
 google-auth # mod_name=google.auth
 requests
 pyvis
+fabric
+click

@@ -62,16 +62,26 @@ ivy_cli.add_command()
         " specified."
     ),
 )
+@click.option(
+    "--tf_ports",
+    type=str,
+    default=12345,
+    help=(
+        "default ports used by each node to construct in format 123 (for the same port)"
+        " or 123,456,111"
+    ),
+)
 @click.argument("user_script", type=str)
 @click.argument("user_args", nargs=-1)
 def run(
     backend: str,
-    host: str,
+    hosts: str,
     hostfile: str,
     nproc_per_node,
     num_nodes,
     master_port,
     master_address,
+    tf_ports,
     user_script,
     user_args,
 ):
@@ -83,12 +93,13 @@ def run(
             " colossalai run --help"
         )
         exit()
+    # mpi can be launched from the master node
     mpi = ivy.current_dist_backend().cli.mpi()
     if not mpi:
         if hostfile:
             host_info.load_from_hostfile(hostfile_path=hostfile)
-        elif host:
-            host_info.load_from_host_str(host_str=host)
+        elif hosts:
+            host_info.load_from_host_str(host_str=hosts)
         else:
             raise Exception("Arg --host or --hostfile must be given")
 
@@ -98,12 +109,14 @@ def run(
         runner.connect(host_info=host_info, work_dir=current_path)
         for rank, host in enumerate(host_info):
             cmd = ivy.current_dist_backend().cli.launch(
-                host=host,
+                hosts=hosts,
                 hostfile=hostfile,
                 nproc_per_node=nproc_per_node,
+                num_nodes=num_nodes,
                 master_port=master_port,
                 master_address=master_address,
                 rank=rank,
+                tf_ports=tf_ports,
                 user_script=user_script,
                 user_args=user_args,
             )
@@ -140,9 +153,10 @@ def run(
             sys.exit(0)
     else:
         cmd = ivy.current_dist_backend().cli.launch(
-            host=host,
+            hosts=hosts,
             hostfile=hostfile,
             nproc_per_node=nproc_per_node,
+            num_nodes=num_nodes,
             master_port=master_port,
             master_address=master_address,
             rank=rank,
