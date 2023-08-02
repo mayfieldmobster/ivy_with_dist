@@ -1,10 +1,7 @@
-from .groups_torch import TorchGroupMixin
-from .groups_jax import JaxGroupMixin
-from .groups_tf import TFGroupMixin
-from .groups_numpy import NumpyGroupMixin
+import ivy
 
 
-class Group(TorchGroupMixin, JaxGroupMixin, TFGroupMixin, NumpyGroupMixin):
+class Group:
     def __init__(self, ranks):
         self.ranks = ranks
 
@@ -17,3 +14,6 @@ class Group(TorchGroupMixin, JaxGroupMixin, TFGroupMixin, NumpyGroupMixin):
 
     def __getitem__(self, idx):
         return self.ranks[idx]
+
+    def to_native_group(self):
+        return ivy.current_dist_backend().to_native_group(self.ranks)

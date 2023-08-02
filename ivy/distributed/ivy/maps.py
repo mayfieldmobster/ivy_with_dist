@@ -1,17 +1,19 @@
 from typing import (
     Union,
     Callable,
-    Hashable,
     Sequence,
 )
 
 import ivy
 from ivy.distributed.ivy.device_handeling.groups import Group
+from ivy.distributed.func_wrappers import group_none_handler, group_to_native
 
 
+@group_to_native
+@group_none_handler
 def pmap(
     fn: Callable,
-    axis_name: Hashable,
+    # axis_name: Hashable,  #TODO add support in the fututre
     *,
     in_axes: Union[int, Sequence[tuple]] = 0,
     out_axes: Union[int, Sequence[tuple]] = 0,
@@ -19,7 +21,7 @@ def pmap(
     dst: int = 0
 ) -> Callable:
     return ivy.current_dist_backend().pmap(
-        fn, axis_name, in_axes=in_axes, out_axes=out_axes, group=group, dst=dst
+        fn, in_axes=in_axes, out_axes=out_axes, group=group, dst=dst
     )
 
 

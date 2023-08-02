@@ -1,3 +1,5 @@
+import mpi4py.MPI as MPI
+
 import jax.numpy as jnp
 import mpi4jax
 
@@ -6,13 +8,11 @@ import ivy.distributed as i_dist
 from ivy.functional.backends.jax import JaxArray
 from ._func_wrapper import token_wrapper
 
-context = i_dist.ParallelContext()
-
 
 def all_reduce(
-    x: JaxArray, op_handler: i_dist.OpHandler, group: i_dist.Group = None
+    x: JaxArray, op_handler: i_dist.OpHandler, group: MPI.Comm = MPI.COMM_WORLD
 ) -> JaxArray:
-    comm = group.ranks_to_jax_devices
+    comm = group
     op = op_handler.jax_op
     out = token_wrapper(mpi4jax.allreduce)(x, op=op, comm=comm)
     if op_handler.op.name == "MEAN":
@@ -21,9 +21,9 @@ def all_reduce(
 
 
 def all_gather(
-    x: JaxArray, axis: int = 0, group: i_dist.Group = None, tiled: bool = False
+    x: JaxArray, axis: int = 0, group: MPI.Comm = MPI.COMM_WORLD, tiled: bool = False
 ) -> JaxArray:
-    comm = group.ranks_to_jax_devices
+    comm = group
     permutation = list(range(jnp.ndim(x)))
     permutation[axis] = 0
     permutation[0] = axis
@@ -35,18 +35,20 @@ def all_gather(
     return out
 
 
-def all_to_all(x: JaxArray, axis: int = 0, group: i_dist.Group = None) -> JaxArray:
+def all_to_all(
+    x: JaxArray, axis: int = 0, group: MPI.Comm = MPI.COMM_WORLD
+) -> JaxArray:
     ...
 
 
 def gather(
     x: JaxArray,
     axis: int = 0,
-    group: i_dist.Group = None,
+    group: MPI.Comm = MPI.COMM_WORLD,
     tiled: bool = False,
     dst: int = 0,
 ):
-    comm = group.ranks_to_jax_devices
+    comm = group
     permutation = list(range(jnp.ndim(x)))
     permutation[axis] = 0
     permutation[0] = axis
@@ -61,10 +63,10 @@ def gather(
 def reduce(
     x: JaxArray,
     op_handler: i_dist.OpHandler,
-    group: i_dist.Group = None,
+    group: MPI.Comm = MPI.COMM_WORLD,
     dst: int = 0,
 ):
-    comm = group.ranks_to_jax_devices
+    comm = group
     op = op_handler.jax_op
     out = token_wrapper(mpi4jax.reduce)(x, op=op, comm=comm, root=dst)
     if op_handler.op.name == "MEAN" and comm.rank == dst:

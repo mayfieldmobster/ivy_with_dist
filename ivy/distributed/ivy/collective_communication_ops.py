@@ -5,7 +5,7 @@ from enum import Enum
 
 import ivy
 from ivy.distributed.ivy.device_handeling.groups import Group
-from ivy.distributed.func_wrappers import group_handler
+from ivy.distributed.func_wrappers import group_none_handler, group_to_native
 
 
 class IvyReduceOp(Enum):
@@ -79,7 +79,8 @@ class OpHandler:
             return mpi4py.MPI.MIN
 
 
-@group_handler
+@group_to_native
+@group_none_handler
 def all_reduce(
     x: Union[ivy.Array, ivy.NativeArray],
     op: Union[str, IvyReduceOp],
@@ -91,7 +92,8 @@ def all_reduce(
     )
 
 
-@group_handler
+@group_to_native
+@group_none_handler
 def all_gather(
     x: Union[ivy.Array, ivy.NativeArray],
     axis: int = 0,
@@ -103,7 +105,8 @@ def all_gather(
     )
 
 
-@group_handler
+@group_to_native
+@group_none_handler
 def all_to_all(
     x: Union[ivy.Array, ivy.NativeArray],
     output_split_sizes=None,
@@ -115,7 +118,8 @@ def all_to_all(
     )
 
 
-@group_handler
+@group_to_native
+@group_none_handler
 def gather(
     x: Union[ivy.Array, ivy.NativeArray],
     axis: int = 0,
@@ -126,7 +130,8 @@ def gather(
     ivy.current_dist_backend().gather(x=x, axis=axis, group=group, tiled=tiled, dst=dst)
 
 
-@group_handler
+@group_to_native
+@group_none_handler
 def reduce(
     x: Union[ivy.Array, ivy.NativeArray],
     op: Union[str, IvyReduceOp],

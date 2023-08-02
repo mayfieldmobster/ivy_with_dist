@@ -25,6 +25,7 @@ def init_dist(
 
     context = i_dist.ParallelContext()
     context.reset_context()
+    context.initilize()
     context.world_size = world_size
     context.multi_machine = multi_machine
     context.default_group = i_dist.Group(range(context.world_size))

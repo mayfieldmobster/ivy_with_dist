@@ -7,6 +7,8 @@ import ivy
 
 context = i_dist.ParallelContext()
 
+# TODO change to work with to_native_group
+
 
 def _to_all_devices(x: Union[tf.Variable, tf.Tensor]):
     stratagy: tf.distribute.Strategy = context.global_stratagy

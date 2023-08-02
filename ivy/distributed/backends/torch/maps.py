@@ -1,4 +1,4 @@
-from typing import Union, Callable, Hashable, Sequence
+from typing import Union, Callable, Sequence
 from functools import wraps
 
 import torch
@@ -39,7 +39,6 @@ def scalar_to_vec(*args):
 
 def pmap(
     fn: Callable,
-    axis_name: Hashable,
     *,
     in_axes: Union[int, Sequence[int]] = 0,
     out_axes: Union[int, Sequence[int]] = 0,

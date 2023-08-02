@@ -1,5 +1,3 @@
-from typing import Union
-
 import torch
 import torch.distributed as dist
 
@@ -13,19 +11,22 @@ context = i_dist.ParallelContext
 
 
 def all_reduce(
-    x: torch.Tensor, op_handler: i_dist.OpHandler, group: i_dist.Group = None
+    x: torch.Tensor,
+    op_handler: i_dist.OpHandler,
+    group: dist.ProcessGroup = dist.group.WORLD,
 ) -> torch.Tensor:
     op = op_handler.torch_op
-    group = group.ranks_to_torch_group()
     work = dist.all_reduce(x, op, group=group, async_op=True)
     work.wait()
     return x
 
 
 def all_gather(
-    x: torch.Tensor, axis: int = 0, group: i_dist.Group = None, tiled: bool = False
+    x: torch.Tensor,
+    axis: int = 0,
+    group: dist.ProcessGroup = dist.group.WORLD,
+    tiled: bool = False,
 ):
-    group = group.ranks_to_torch_group()
     num_processes = group.size
     x = x if axis == 0 else x.transpose(0, axis).contiguous()
     out_shape = (x.shape[0] * num_processes,) + x.shape[1:]
@@ -44,10 +45,8 @@ def all_to_all(
     x: torch.Tensor,
     output_split_sizes=None,
     input_split_sizes=None,
-    group: i_dist.Group = None,
+    group: dist.ProcessGroup = dist.group.WORLD,
 ) -> ivy.Array:
-    if isinstance(group, i_dist.Group):
-        group = group.ranks_to_torch_group()
     input_tensor = x.contiguous()
     out_shape = input_tensor.shape
     tensor_out = torch.empty(out_shape, dtype=x.dtype, device=x.device)
@@ -65,13 +64,11 @@ def all_to_all(
 
 def gather(
     x: torch.Tensor,
-    group: Union[i_dist.Group, dist.ProcessGroup],
+    group: dist.ProcessGroup = dist.group.WORLD,
     axis: int = 0,
     tiled: bool = False,
     dst: int = 0,
 ):
-    if isinstance(group, i_dist.Group):
-        group = group.ranks_to_torch_group()
     num_processes = group.size()
     # TODO add a method of getting process rank
     rank = dist.get_group_rank(group, int)
@@ -100,11 +97,9 @@ def gather(
 def reduce(
     x: torch.Tensor,
     op_handler: i_dist.OpHandler,
-    group: Union[i_dist.Group, dist.ProcessGroup],
+    group: dist.ProcessGroup = dist.group.WORLD,
     dst: int = 0,
 ):
-    if isinstance(group, i_dist.Group):
-        group = group.ranks_to_torch_group()
     op = op_handler.torch_op
     work = dist.reduce(x, dst=dst, op=op, group=group, async_op=True)
     work.wait()

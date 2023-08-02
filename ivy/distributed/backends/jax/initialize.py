@@ -24,17 +24,17 @@ def init_dist(
             local_device_ids=local_device_ids,
         )
     mpi_comm = MPI.COMM_WORLD
-    global_rank = mpi_comm.Get_rank()
     world_size = mpi_comm.Get_size()
+    local_rank = MPI.COMM_WORLD.Get_rank() % os.environ["NPROC_PER_NODE"]
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(global_rank)
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(local_rank)
 
     token = mpi4jax.barrier()
 
     context = i_dist.ParallelContext()
     context.reset_context()
+    context.initilize()
     context.world_size = world_size
     context.multi_machine = multi_machine
-    context.global_rank = global_rank
     context.xla_token = token
     context.default_group = i_dist.Group(range(context.world_size))

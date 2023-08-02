@@ -1,4 +1,4 @@
-from typing import Union, Callable, Hashable, Sequence
+from typing import Union, Callable, Sequence
 from functools import wraps
 
 import tensorflow as tf
@@ -44,7 +44,6 @@ def data_to_device(args, group: Union[i_dist.Group, None]):
 
 def pmap(
     fn: Callable,
-    axis_name: Hashable,
     *,
     in_axes: Union[int, Sequence[int]] = 0,
     out_axes: Union[int, Sequence[int]] = 0,
