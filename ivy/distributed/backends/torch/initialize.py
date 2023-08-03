@@ -6,24 +6,15 @@ import ivy.distributed as i_dist
 
 
 def init_dist(
-    multi_machine: bool,
-    coordinator_address: Optional[str] = None,
-    shared_file_system_path: Optional[str] = None,
     backend: Optional[str] = None,
     **kwargs,
 ):
-    if multi_machine:
-        if shared_file_system_path:
-            init_method = f"file://{shared_file_system_path}"
-        else:
-            init_method = f"tcp://{coordinator_address}"
-        dist.init_process_group(
-            backend=backend,
-            init_method=init_method,
-        )
+    dist.init_process_group(backend=backend)
 
     context = i_dist.ParallelContext()
     context.reset_context()
     context.initilize()
+
+    multi_machine = True if context.world_size / context.rank != 1 else False
     context.multi_machine = multi_machine
     context.default_group = i_dist.Group(range(context.world_size))

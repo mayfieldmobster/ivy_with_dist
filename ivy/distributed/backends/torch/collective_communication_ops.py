@@ -29,10 +29,13 @@ def all_gather(
 ):
     num_processes = group.size
     x = x if axis == 0 else x.transpose(0, axis).contiguous()
-    out_shape = (x.shape[0] * num_processes,) + x.shape[1:]
-    tensor_out = torch.empty(out_shape, dtype=x.dtype, device=x.device)
-    work = dist.all_gather_into_tensor(tensor_out, x, group=None, async_op=True)
+    tensor_out = [
+        torch.empty(x.shape, dtype=x.dtype, device=x.device)
+        for _ in range(group.size())
+    ]
+    work = dist.all_gather(tensor_out, x, group=group, async_op=True)
     work.wait()
+    tensor_out = ivy.concat(tensor_out)
     out = tensor_out if axis == 0 else tensor_out.transpose(0, axis)
 
     if tiled:
@@ -78,11 +81,11 @@ def gather(
 
     if dst == rank:
         tensor_out = [
-            torch.empty(tensor_in.shape, device=tensor_in.device, dtype=tensor_in.dtype)
-            for _ in range(num_processes)
+            torch.empty(x.shape, device=tensor_in.device, dtype=tensor_in.dtype)
+            for _ in range(group.size())
         ]
         work = dist.gather(tensor_in, tensor_out, dst=dst, group=group, async_op=True)
-        tensor_out = torch.cat(tensor_out, dim=0)  # maybe change 0 to axis var
+        tensor_out = ivy.concat(tensor_out)  # maybe change 0 to axis var
         out = tensor_out if axis == 0 else tensor_out.transpose(0, axis)
         work.wait()
         if tiled:
