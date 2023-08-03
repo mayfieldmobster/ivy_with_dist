@@ -1,23 +1,20 @@
 import ivy.distributed as i_dist
+import inspect
 
 
-def group_none_handler(fn):
+def group_handler(fn):
+    signature = inspect.signature(fn)
+
     def _group_handler(*args, **kwargs):
+        bound_args = signature.bind(*args, **kwargs)
+        bound_args.apply_defaults()
         context = i_dist.ParallelContext()
-        for k, v in kwargs:
-            if k == "group" and v is None:
-                kwargs[k] = i_dist.Group(range(context.get_world_size))
-        fn(*args, **kwargs)
+        if "group" in bound_args.arguments:
+            if bound_args.arguments["group"] is None:
+                bound_args.arguments["group"] = i_dist.Group(range(context.world_size))
+            bound_args.arguments["group"] = bound_args.arguments[
+                "group"
+            ].to_native_group()
+        return fn(*bound_args.args, **bound_args.kwargs)
 
     return _group_handler
-
-
-def group_to_native(fn):
-    def _group_to_native(*args, **kwargs):
-        for k, v in kwargs:
-            if k == "group":
-                kwargs[k] == v.to_native_group()
-                break
-        fn(*args, **kwargs)
-
-    return _group_to_native

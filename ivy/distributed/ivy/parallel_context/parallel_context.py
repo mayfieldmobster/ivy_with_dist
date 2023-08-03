@@ -18,6 +18,18 @@ class ParallelContext(dict, metaclass=SingletonMetaClass):
     def reset_context(self):
         self.clear()
 
+    @property
+    def rank(self):
+        return self.get_global_rank()
+
+    @property
+    def local_rank(self):
+        return self.get_local_rank()
+
+    @property
+    def world_size(self):
+        return self.get_world_size()
+
     def get_global_rank(self):
         return current_dist_backend()._context.get_global_rank()
 

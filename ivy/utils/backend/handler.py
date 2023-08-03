@@ -708,5 +708,4 @@ def current_dist_backend():
     # set_backend then this will be returned
     # if no global backend exists, we try to infer
     # the backend from the arguments
-    print(_dist_backend_dict[ivy.backend])
     return importlib.import_module(_dist_backend_dict[ivy.backend])

@@ -68,7 +68,7 @@ import ivy
 @click.argument("user_args", nargs=-1)
 def run(
     backend: str,
-    hosts: str,
+    host: str,
     hostfile: str,
     nproc_per_node,
     num_nodes,
@@ -78,16 +78,11 @@ def run(
     user_script,
     user_args,
 ):
+    hosts = host  # hosts makes more sence
     if backend is None:
         raise Exception("Backend Must Be Given to ivyrun")
     ivy.set_backend(backend)
     host_info = HostInfo()
-    if not user_script.endswith(".py"):
-        click.echo(
-            f"Error: invalid Python file {user_script}. Did you use a wrong option? Try"
-            " colossalai run --help"
-        )
-        exit()
     # mpi can be launched from the master node
     mpi = ivy.current_dist_backend().cli.mpi()
     if not mpi:
@@ -149,6 +144,7 @@ def run(
     else:
         # allows to get local rank info
         os.system(f"export NPROC_PER_NODE={nproc_per_node}")
+        rank = None
         cmd = ivy.current_dist_backend().cli.launch(
             hosts=hosts,
             hostfile=hostfile,

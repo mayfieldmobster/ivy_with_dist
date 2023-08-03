@@ -1,7 +1,7 @@
 import mpi4py.MPI as MPI
 
 
-def to_native_group(ranks):
+def _to_native_group(ranks):
     comm = MPI.COMM_WORLD
 
     if len(ranks) == comm.Get_size():

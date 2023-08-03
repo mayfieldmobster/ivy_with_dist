@@ -5,7 +5,8 @@ from enum import Enum
 
 import ivy
 from ivy.distributed.ivy.device_handeling.groups import Group
-from ivy.distributed.func_wrappers import group_none_handler, group_to_native
+from ivy.distributed.func_wrappers import group_handler
+from ivy.func_wrapper import to_native_arrays_and_back
 
 
 class IvyReduceOp(Enum):
@@ -79,11 +80,12 @@ class OpHandler:
             return mpi4py.MPI.MIN
 
 
-@group_to_native
-@group_none_handler
+@group_handler
+@to_native_arrays_and_back
 def all_reduce(
     x: Union[ivy.Array, ivy.NativeArray],
     op: Union[str, IvyReduceOp],
+    *,
     group: Union[Group, None] = None,
 ) -> ivy.Array:
     op_handler = OpHandler(op)
@@ -92,11 +94,12 @@ def all_reduce(
     )
 
 
-@group_to_native
-@group_none_handler
+@group_handler
+@to_native_arrays_and_back
 def all_gather(
     x: Union[ivy.Array, ivy.NativeArray],
     axis: int = 0,
+    *,
     group: Union[Group, None] = None,
     tiled: bool = False,
 ) -> ivy.Array:
@@ -105,8 +108,8 @@ def all_gather(
     )
 
 
-@group_to_native
-@group_none_handler
+@group_handler
+@to_native_arrays_and_back
 def all_to_all(
     x: Union[ivy.Array, ivy.NativeArray],
     output_split_sizes=None,
@@ -118,25 +121,31 @@ def all_to_all(
     )
 
 
-@group_to_native
-@group_none_handler
+@group_handler
+@to_native_arrays_and_back
 def gather(
     x: Union[ivy.Array, ivy.NativeArray],
     axis: int = 0,
+    *,
     group: Union[Group, None] = None,
     tiled: bool = False,
     dst: int = 0,
 ):
-    ivy.current_dist_backend().gather(x=x, axis=axis, group=group, tiled=tiled, dst=dst)
+    return ivy.current_dist_backend().gather(
+        x=x, axis=axis, group=group, tiled=tiled, dst=dst
+    )
 
 
-@group_to_native
-@group_none_handler
+@group_handler
+@to_native_arrays_and_back
 def reduce(
     x: Union[ivy.Array, ivy.NativeArray],
     op: Union[str, IvyReduceOp],
+    *,
     group: Union[Group, None] = None,
     dst: int = 0,
 ):
     op_handler = OpHandler(op)
-    ivy.current_dist_backend().gather(x=x, op_handler=op_handler, group=group, dst=dst)
+    return ivy.current_dist_backend().gather(
+        x=x, op_handler=op_handler, group=group, dst=dst
+    )

@@ -73,15 +73,15 @@ class MultiHostRun:
             self.send_pipes[host] = master_send_pipe
 
     def send(self, host, msg):
-        conn = self.master_send_conns[host]
+        conn = self.send_pipes[host]
         conn.send(msg)
 
     def stop_all(self):
-        for _, conn in self.master_send_conns.items():
+        for _, conn in self.send_pipes.items():
             conn.send("exit")
 
     def recv_from_all(self):
         msg_from_node = dict()
-        for hostname, conn in self.master_recv_conns.items():
+        for hostname, conn in self.recv_pipes.items():
             msg_from_node[hostname] = conn.recv()
         return msg_from_node

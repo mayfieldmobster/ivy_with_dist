@@ -6,11 +6,10 @@ from typing import (
 
 import ivy
 from ivy.distributed.ivy.device_handeling.groups import Group
-from ivy.distributed.func_wrappers import group_none_handler, group_to_native
+from ivy.distributed.func_wrappers import group_handler
 
 
-@group_to_native
-@group_none_handler
+@group_handler
 def pmap(
     fn: Callable,
     # axis_name: Hashable,  #TODO add support in the fututre

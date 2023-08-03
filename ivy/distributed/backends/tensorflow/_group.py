@@ -3,7 +3,7 @@ import ivy.distributed as i_dist
 import tensorflow as tf
 
 
-def to_native_group(ranks):
+def _to_native_group(ranks):
     context = i_dist.ParallelContext()
 
     if len(ranks) == context.world_size:

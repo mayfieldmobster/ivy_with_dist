@@ -6,8 +6,6 @@ from . import maps
 from .maps import *
 from . import p2p
 from .p2p import *
-from . import utils
-from .utils import *
 from . import device_handeling
 from .device_handeling import *
 from . import parallel_context

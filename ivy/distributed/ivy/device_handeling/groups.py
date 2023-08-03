@@ -16,4 +16,4 @@ class Group:
         return self.ranks[idx]
 
     def to_native_group(self):
-        return ivy.current_dist_backend().to_native_group(self.ranks)
+        return ivy.current_dist_backend()._group._to_native_group(self.ranks)

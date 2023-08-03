@@ -2,9 +2,8 @@ import ivy
 
 
 def init_dist(
-    world_size: int,
-    multi_machine: bool,
-    coordinator_address: str,
+    multi_machine: bool = False,
+    coordinator_address: str = None,
     **kwargs  # for framework_specific args
 ) -> None:
     # TODO check if code is necessary
@@ -22,8 +21,5 @@ def init_dist(
         )
     """
     ivy.current_dist_backend().init_dist(
-        world_size=world_size,
-        multi_machine=multi_machine,
-        coordinator_address=coordinator_address,
-        **kwargs
+        multi_machine=multi_machine, coordinator_address=coordinator_address, **kwargs
     )

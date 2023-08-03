@@ -4,10 +4,7 @@ class HostInfo:
         self.ssh_port = 22
 
     def load_from_host_str(self, host_str):
-        hosts = host_str.split(",")
-        for host in hosts:
-            host, _ = host.split(":")
-            self.nodes.append(host)
+        self.nodes = host_str.split(",")
 
     def load_from_hostfile(self, hostfile_path):
         with open(hostfile_path, "r") as file:

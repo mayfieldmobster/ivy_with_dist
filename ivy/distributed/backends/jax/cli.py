@@ -1,4 +1,4 @@
-import os
+import fabric
 
 
 def launch(
@@ -24,13 +24,16 @@ def launch(
 
     options.append(f"-np {num_processes}")
 
+    if hosts or hostfile:
+        options.append("-mca pml ob1 -mca btl ^openib")
+
     options.append("-bind-to none -map-by slot")
-    options.append("-mca pml ob1 -mca btl ^openib")
 
     user_args = " ".join([a for a in user_args])
 
     cmd = cmd_base + " ".join(options) + f" python3 {user_script} {user_args}"
-    os.system(cmd)
+    fab_conn = fabric.Connection("localhost")
+    fab_conn.local(cmd, hide=False)
 
 
 def mpi():

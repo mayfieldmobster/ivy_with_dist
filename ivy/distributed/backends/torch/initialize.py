@@ -6,7 +6,6 @@ import ivy.distributed as i_dist
 
 
 def init_dist(
-    world_size: int,
     multi_machine: bool,
     coordinator_address: Optional[str] = None,
     shared_file_system_path: Optional[str] = None,
@@ -26,6 +25,5 @@ def init_dist(
     context = i_dist.ParallelContext()
     context.reset_context()
     context.initilize()
-    context.world_size = world_size
     context.multi_machine = multi_machine
     context.default_group = i_dist.Group(range(context.world_size))

@@ -24,8 +24,10 @@ def all_gather(
     permutation[axis] = 0
     permutation[0] = axis
     tensor_in = x if axis == 0 else x.transpose(permutation)
-    tensor_out = [np.empty_like(tensor_in) for i in range(group.Get_size())]
+    tensor_out_shape = (group.Get_size(), *x.shape)
+    tensor_out = np.empty(tensor_out_shape)
     group.Allgather(tensor_in, tensor_out)
+    tensor_out = ivy.concat(tensor_out)
     out = tensor_out if axis == 0 else tensor_out.transpose(permutation)
     if tiled:
         out = ivy.split(out, num_or_size_splits=group.Get_size(), axis=axis)
@@ -49,8 +51,11 @@ def gather(
     permutation[axis] = 0
     permutation[0] = axis
     tensor_in = x if axis == 0 else x.transpose(permutation)
-    out = group.gather(tensor_in, root=dst, comm=group)
-    out = out if axis == 0 else out.transpose(permutation)
+    out_shape = (group.Get_size(), *x.shape)
+    tensor_out = np.empty(out_shape)
+    group.Gather(tensor_in, tensor_out, root=dst)
+    tensor_out = ivy.concat(tensor_out)
+    out = tensor_out if axis == 0 else tensor_out.transpose(permutation)
     if tiled:
         out = ivy.split(out, num_or_size_splits=group.Get_size(), axis=axis)
     return out
