@@ -2,10 +2,11 @@ from typing import Union, Sequence, Callable
 import mpi4py.MPI as MPI
 from functools import wraps
 
-import numpy as np
+import cupy as cp
 
 import ivy
 import ivy.distributed as i_dist
+from _func_wrapper import to_dlpack_and_back
 
 
 def data_frag(*args, in_axes: Union[int, Sequence[int]], num_devices: int):
@@ -14,7 +15,7 @@ def data_frag(*args, in_axes: Union[int, Sequence[int]], num_devices: int):
     if len(in_axes) != len(args):
         raise ValueError("len of in_axes must match len of args")
     for d, a in zip(axes, args):
-        if not isinstance(a, np.n):
+        if not isinstance(a, cp.ndarray):
             raise TypeError("Only tensors can be mapped")
         if d is not None:
             a = ivy.split(a, num_or_size_splits=num_devices, axis=d)
@@ -43,6 +44,7 @@ def pmap(
 
     # not using pmap bacause mpi is easier and more consistent
     @wraps(fn)
+    @to_dlpack_and_back
     def _pmap(*args, **kwargs):
         if num_processes == 1:
             return ivy.vmap(fn, in_axes=in_axes, out_axes=out_axes)(*args, **kwargs)

@@ -14,7 +14,7 @@ def data_frag(*args, in_axes: Union[int, Sequence[int]], num_devices: int):
     if len(in_axes) != len(args):
         raise ValueError("len of in_axes must match len of args")
     for d, a in zip(axes, args):
-        if not isinstance(a, np.n):
+        if not isinstance(a, np.ndarray):
             raise TypeError("Only tensors can be mapped")
         if d is not None:
             a = ivy.split(a, num_or_size_splits=num_devices, axis=d)
