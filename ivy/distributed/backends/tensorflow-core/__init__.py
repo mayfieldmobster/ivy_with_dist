@@ -10,6 +10,6 @@ from . import cli
 from . import _context
 from . import _group
 
-import mpi4py.MPI as MPI
+import tensorflow as tf
 
-NativeGroup = MPI.Comm
+NativeGroup = tf.distribute.Strategy

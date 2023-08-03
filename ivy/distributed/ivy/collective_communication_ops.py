@@ -108,17 +108,14 @@ def all_gather(
     )
 
 
+# TODO add support for input/output_split_sizes
 @group_handler
 @to_native_arrays_and_back
 def all_to_all(
     x: Union[ivy.Array, ivy.NativeArray],
-    output_split_sizes=None,
-    input_split_sizes=None,
     group: Union[Group, None] = None,
 ) -> ivy.Array:
-    return ivy.current_dist_backend().all_gather(
-        x=x, output_split_sizes=None, input_split_sizes=None, group=group
-    )
+    return ivy.current_dist_backend().all_gather(x=x, group=group)
 
 
 @group_handler

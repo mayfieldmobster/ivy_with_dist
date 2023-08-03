@@ -91,7 +91,7 @@ def run(
         elif hosts:
             host_info.load_from_host_str(host_str=hosts)
         else:
-            raise Exception("Arg --host or --hostfile must be given")
+            host_info.load_from_host_str("localhost")
 
         runner = MultiHostRun()
         current_path = os.path.abspath(".")

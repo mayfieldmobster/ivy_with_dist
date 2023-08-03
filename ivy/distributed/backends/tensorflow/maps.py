@@ -1,20 +1,20 @@
-from typing import Union, Callable, Sequence
+from typing import Union, Sequence, Callable
+import mpi4py.MPI as MPI
 from functools import wraps
 
-import tensorflow as tf
+import numpy as np
 
-import ivy.distributed as i_dist
 import ivy
+import ivy.distributed as i_dist
 
-context = i_dist.ParallelContext()
 
-
-def data_frag(*args, in_axes: Union[int, tuple], num_devices: int):
+def data_frag(*args, in_axes: Union[int, Sequence[int]], num_devices: int):
     new_args = [[] for _ in range(num_devices)]
+    axes = (in_axes,) * len(args) if isinstance(in_axes, int) else in_axes
     if len(in_axes) != len(args):
         raise ValueError("len of in_axes must match len of args")
-    for d, a in zip(in_axes, args):
-        if not isinstance(a, tf.Tensor) and not isinstance(a, tf.Variable):
+    for d, a in zip(axes, args):
+        if not isinstance(a, np.n):
             raise TypeError("Only tensors can be mapped")
         if d is not None:
             a = ivy.split(a, num_or_size_splits=num_devices, axis=d)
@@ -27,52 +27,30 @@ def data_frag(*args, in_axes: Union[int, tuple], num_devices: int):
     return new_args
 
 
-def data_to_device(args, group: Union[i_dist.Group, None]):
-    if group is None:
-        if context.global_strategy_type == tf.distribute.TPUStrategy:
-            device_type = "TPU"
-        else:
-            device_type = "GPU"
-        ranks = range(context.world_size)
-    else:
-        ranks = group.ranks
-    for i, r in enumerate(ranks):
-        with tf.device(f"{device_type}:{r}"):
-            args[i] = args[i]
-    return args
-
-
+# could use mpi map as a replacement may even be faster
 def pmap(
     fn: Callable,
     *,
-    in_axes: Union[int, Sequence[int]] = 0,
-    out_axes: Union[int, Sequence[int]] = 0,
-    group: Union[i_dist.Group, None] = None,
-    dst: int = 0,
-):
-    if isinstance(group, i_dist.Group):
-        group_stratagy = group.ranks_to_torch_group()
-        num_processes = len(group.ranks)
-    else:
-        group_stratagy = context.global_strategy
-        num_processes = context.world_size
+    in_axes: Union[int, Sequence[tuple]] = 0,
+    out_axes: Union[int, Sequence[tuple]] = 0,
+    group: MPI.Comm = MPI.COMM_WORLD,
+    dst: int = 0
+) -> Callable:
+    comm = group.ranks_to_jax_devices()
 
+    rank = comm.Get_rank()
+    num_processes = comm.Get_size()
+
+    # not using pmap bacause mpi is easier and more consistent
     @wraps(fn)
-    def wrapper(*args, **kwargs):
-        if isinstance(in_axes, int):
-            axes = (in_axes,) * len(args)
-
+    def _pmap(*args, **kwargs):
         if num_processes == 1:
-            return ivy.vmap(fn, in_axes=in_axes, out_axes=out_axes)
+            return ivy.vmap(fn, in_axes=in_axes, out_axes=out_axes)(*args, **kwargs)
 
-        new_args = data_frag(*args, in_axes=axes, num_devices=num_processes)
-        new_args = data_to_device(new_args, group=group)
-        with group_stratagy.scope():
-            replica_context = tf.distribute.get_replica_context()
-            replica_id = replica_context.replica_id_in_sync_group
-            func_out = ivy.vmap(fn, in_axes=in_axes, out_axes=out_axes)(
-                *args[replica_id], **kwargs
-            )
+        new_args = data_frag(*args, in_axes=in_axes, num_devices=num_processes)
+        func_out = ivy.vmap(fn, in_axes=in_axes, out_axes=out_axes)(
+            *new_args[rank], **kwargs
+        )
 
         out_axes_ = (
             (out_axes,) * len(func_out) if isinstance(out_axes, int) else out_axes
@@ -97,9 +75,8 @@ def pmap(
                             func_out[i], out_axes_[i], group=group, tiled=True, dst=dst
                         )
                     )
-
                     return tuple(out)
             else:
                 return i_dist.gather(func_out, out_axes_[0], group=group, dst=dst)
 
-    return wrapper
+    return _pmap

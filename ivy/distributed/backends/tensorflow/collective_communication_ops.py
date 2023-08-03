@@ -1,69 +1,81 @@
-from typing import Union
+import mpi4py.MPI as MPI
 
-import tensorflow as tf
+import cupy as cp
 
-import ivy.distributed as i_dist
 import ivy
-
-context = i_dist.ParallelContext()
-
-# TODO change to work with to_native_group
+import ivy.distributed as i_dist
+from _func_wrapper import to_dlpack_and_back
 
 
-def _to_all_devices(x: Union[tf.Variable, tf.Tensor]):
-    stratagy: tf.distribute.Strategy = context.global_stratagy
-    with stratagy.scope():
-        x = x
-    return x
-
-
+@to_dlpack_and_back
 def all_reduce(
-    x: Union[tf.Variable, tf.Tensor],
-    op_handler: i_dist.OpHandler,
-    group: i_dist.Group = None,
-) -> Union[tf.Variable, tf.Tensor]:
-    stratagy = group.ranks_to_tf_group
-    reduced_x = stratagy.reduce(op_handler.tensorflow_op, x)
-    return _to_all_devices(reduced_x)
+    x: cp.ndarray, op_handler: i_dist.OpHandler, group: MPI.Comm = MPI.COMM_WORLD
+) -> cp.ndarray:
+    op = op_handler.numpy_op
+    tensor_out = cp.empty_like(x, dtype=x.dtype)
+    group.Allreduce(x, tensor_out, op)
+    if op_handler.op.name == "MEAN":
+        tensor_out = tensor_out / cp.array(group.Get_size(), dtype=tensor_out.dtype)
+    return tensor_out
 
 
+@to_dlpack_and_back
 def all_gather(
-    x: Union[tf.Variable, tf.Tensor],
-    axis: int = 0,
-    group: i_dist.Group = None,
-    tiled: bool = False,
-) -> Union[tf.Variable, tf.Tensor]:
-    num_devices = len(group)
-    stratagy = group.ranks_to_tf_group
-    gathered_x = stratagy.gather(x, axis)
+    x: cp.ndarray, axis: int = 0, group: MPI.Comm = MPI.COMM_WORLD, tiled: bool = False
+):
+    permutation = list(range(cp.ndim(x)))
+    permutation[axis] = 0
+    permutation[0] = axis
+    tensor_in = x if axis == 0 else x.transpose(permutation)
+    tensor_out_shape = (group.Get_size(), *x.shape)
+    tensor_out = cp.empty(tensor_out_shape, dtype=tensor_in.dtype)
+    group.Allgather(tensor_in, tensor_out)
+    tensor_out = ivy.concat(tensor_out)
+    out = tensor_out if axis == 0 else tensor_out.transpose(permutation)
     if tiled:
-        gathered_x = ivy.split(gathered_x, num_or_size_splits=num_devices, axis=axis)
-
-    return _to_all_devices(gathered_x)
-
-
-def all_to_all(
-    x: Union[tf.Variable, tf.Tensor], axis: int = 0, group: i_dist.Group = None
-) -> Union[tf.Variable, tf.Tensor]:
-    ...
+        out = ivy.split(out, num_or_size_splits=group.Get_size(), axis=axis)
+    return out
 
 
+@to_dlpack_and_back
+def all_to_all(x: cp.ndarray, group: MPI.Comm = MPI.COMM_WORLD) -> cp.ndarray:
+    tensor_out = cp.empty_like(x, dtype=x.dtype)
+    group.Alltoall(x, tensor_out)
+    return tensor_out
+
+
+@to_dlpack_and_back
 def gather(
-    x: Union[tf.Variable, tf.Tensor],
+    x: cp.ndarray,
     axis: int = 0,
-    group: i_dist.Group = None,
+    group: MPI.Comm = MPI.COMM_WORLD,
     tiled: bool = False,
     dst: int = 0,
 ):
-    num_devices = len(group)
-    stratagy = group.ranks_to_tf_group
-    gathered_x = stratagy.gather(x, axis)
+    permutation = list(range(cp.ndim(x)))
+    permutation[axis] = 0
+    permutation[0] = axis
+    tensor_in = x if axis == 0 else x.transpose(permutation)
+    out_shape = (group.Get_size(), *x.shape)
+    tensor_out = cp.empty(out_shape, dtype=x.dtype)
+    group.Gather(tensor_in, tensor_out, root=dst)
+    tensor_out = ivy.concat(tensor_out)
+    out = tensor_out if axis == 0 else tensor_out.transpose(permutation)
     if tiled:
-        gathered_x = ivy.split(gathered_x, num_or_size_splits=num_devices, axis=axis)
-    for i in range(len(group)):
-        with tf.device(f"GPU:{group[i]}"):
-            if i == dst:
-                out = gathered_x
-            else:
-                out = True
+        out = ivy.split(out, num_or_size_splits=group.Get_size(), axis=axis)
     return out
+
+
+@to_dlpack_and_back
+def reduce(
+    x: cp.ndarray,
+    op_handler: i_dist.OpHandler,
+    group: MPI.Comm = MPI.COMM_WORLD,
+    dst: int = 0,
+):
+    op = op_handler.numpy_op
+    tensor_out = cp.empty_like(x, dtype=x.dtype)
+    group.Reduce(x, tensor_out, op=op, root=dst)
+    if op_handler.op.name == "MEAN" and group.rank == dst:
+        tensor_out = tensor_out / group.Get_size()
+    return tensor_out

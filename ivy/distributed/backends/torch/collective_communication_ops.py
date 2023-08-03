@@ -36,12 +36,12 @@ def all_gather(
     work = dist.all_gather(tensor_out, x, group=group, async_op=True)
     work.wait()
     tensor_out = ivy.concat(tensor_out)
-    out = tensor_out if axis == 0 else tensor_out.transpose(0, axis)
+    tensor_out = tensor_out if axis == 0 else tensor_out.transpose(0, axis)
 
     if tiled:
-        out = ivy.split(out, num_or_size_splits=num_processes, axis=axis)
+        tensor_out = ivy.split(tensor_out, num_or_size_splits=num_processes, axis=axis)
 
-    return out
+    return tensor_out
 
 
 def all_to_all(
@@ -86,11 +86,13 @@ def gather(
         ]
         work = dist.gather(tensor_in, tensor_out, dst=dst, group=group, async_op=True)
         tensor_out = ivy.concat(tensor_out)  # maybe change 0 to axis var
-        out = tensor_out if axis == 0 else tensor_out.transpose(0, axis)
+        tensor_out = tensor_out if axis == 0 else tensor_out.transpose(0, axis)
         work.wait()
         if tiled:
-            out = ivy.split(out, num_or_size_splits=num_processes, axis=axis)
-        return out
+            tensor_out = ivy.split(
+                tensor_out, num_or_size_splits=num_processes, axis=axis
+            )
+        return tensor_out
     else:
         work = dist.gather(tensor_in, dst=dst, group=group, async_op=True)
         work.wait()

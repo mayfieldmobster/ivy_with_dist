@@ -1,74 +1,42 @@
-import os
-import json
-
-
-def _get_workers_from_hosts(hosts, tf_ports):
-    workers = []
-    hosts = hosts.split(",")
-    tf_ports = tf_ports.split(",")
-    if len(tf_ports) == 1:
-        tf_ports = [tf_ports[0]] * len(hosts)
-    elif len(tf_ports) != len(hosts):
-        raise Exception("Number of Ports must equal Number of Hosts")
-    for h, p in zip(hosts, tf_ports):
-        workers.append(f"{h.split(':')[0]}:{p}")
-    return workers
-
-
-def _get_workers_from_hostfile(hostfile, tf_ports):
-    addresses = []
-    workers = []
-    with open(hostfile, "r") as file:
-        hosts = file.read().split("\n")
-        for host in hosts:
-            if host[0] == "#":
-                hosts.remove(host)
-                continue
-            host = host.split("#")[0]
-            host = host.split(" ")[0]
-            if host:
-                addresses.append(host)
-    tf_ports = tf_ports.split(",")
-    if len(tf_ports) == 1:
-        tf_ports = [tf_ports[0]] * len(addresses)
-    for h, p in zip(hosts, tf_ports):
-        workers.append(f"{h}:{p}")
-    return workers
+import fabric
 
 
 def launch(
     *,
     hosts: str,
     hostfile: str,
+    nproc_per_node,
     num_nodes,
-    tf_ports,
     user_script,
     user_args,
-    rank,
-    **kwargs,
+    **kwargs,  # collect unsed kwargd
 ):
-    base = f"python3 {user_script} {' '.join([a for a in user_args])}"
-    if num_nodes == 1:
-        return base
-    try:
-        if os.environ["TF_CONFIG"]:
-            return base
-    except KeyError:
-        pass
+    cmd_base = "mpirun "
+    options = []
+    num_processes = num_nodes * nproc_per_node
+    if hosts is not None:
+        workers = ""
+        for host in hosts.split(","):
+            workers += f"{host}:{nproc_per_node}"
+        options.append(f"-H {workers}")
+    elif hostfile is not None:
+        options.append(f"--hostfile {hostfile}")
 
-    if hostfile is not None:
-        workers = _get_workers_from_hostfile(hostfile, tf_ports)
-    elif hosts is not None:
-        workers = _get_workers_from_hosts(hosts, tf_ports)
+    options.append(f"-np {num_processes}")
 
-    tf_config = {
-        "cluster": {"worker": workers},
-        "task": {"index": rank, "type": "worker"},
-    }
+    if hosts or hostfile:
+        options.append("-mca pml ob1 -mca btl ^openib")
 
-    cmd = f"TF_CONFIG='{json.dumps(tf_config)}' {base}"
-    return cmd
+    options.append("-bind-to none -map-by slot")
+
+    user_args = " ".join([a for a in user_args])
+
+    cmd = cmd_base + " ".join(options) + f" python3 {user_script} {user_args}"
+
+    # fabric i used as a easy way to get subprocess outputs
+    fab_conn = fabric.Connection("localhost")
+    fab_conn.local(cmd, hide=False)
 
 
 def mpi():
-    return False
+    return True

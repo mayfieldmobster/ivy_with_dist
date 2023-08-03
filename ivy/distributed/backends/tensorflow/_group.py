@@ -1,23 +1,14 @@
-import ivy
-import ivy.distributed as i_dist
-import tensorflow as tf
+import mpi4py.MPI as MPI
 
 
 def _to_native_group(ranks):
-    context = i_dist.ParallelContext()
+    comm = MPI.COMM_WORLD
 
-    if len(ranks) == context.world_size:
-        return context.default_strategy
+    if len(ranks) == comm.Get_size():
+        return comm
 
-    if ivy.verbosity.level > 0:
-        m = "Tensorflow only supports groups if strategy is MirroredStrategy\n"
-        print(ivy.verbosity.cprint(m, color="red"))
+    group = comm.Get_group()
 
-    if context.global_strategy_type == tf.distribute.MirroredStrategy:
-        devices = [f"GPU:{i}" for i in ranks]
-        group = tf.distribute.MirroredStrategy(devices=devices)
-    else:
-        raise NotImplementedError(
-            "Tensorflow groups only supported on Mirrored Strategy"
-        )
-    return group
+    new_group = group.excel(ranks)
+
+    return comm.Create(new_group)

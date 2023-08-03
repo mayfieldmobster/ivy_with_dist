@@ -1,24 +1,17 @@
-from typing import Union
+import mpi4py.MPI as MPI
 
-import tensorflow as tf
+import cupy as cp
 
-# from tensorflow.compiler.tf2xla.python import xla
-
-import ivy.distributed as i_dist
-
-context = i_dist.ParallelContext()
-
-# TODO implement tf.raw_ops.Send/Recv
+from _func_wrapper import to_dlpack_and_back
 
 
-def send(x: Union[tf.Variable, tf.Tensor], dst: int, tag: int, group: i_dist.Group):
-    global dic
-    with tf.device(f"{context.device_type}:{group[dst]}"):
-        dic[tag] = x
+@to_dlpack_and_back
+def send(x: cp.ndarray, dst: int, tag: int, group: MPI.Comm = MPI.COMM_WORLD):
+    group.Send(x, dest=dst, tag=tag)
 
 
-def recv(
-    x_buffer: Union[tf.Variable, tf.Tensor], src: int, tag: int, group: i_dist.Group
-):
-    global dic
-    return dic.pop(tag)
+@to_dlpack_and_back
+def recv(x_buffer: cp.ndarray, src: int, tag: int, group: MPI.Comm = MPI.COMM_WORLD):
+    out = cp.empty_like(x_buffer, dtype=x_buffer.dtype)
+    group.Recv(out, source=src, tag=tag)
+    return out
