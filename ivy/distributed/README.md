@@ -104,10 +104,14 @@ if group.rank == 2:
 
 ```
 ```bash
-ivydist -B torch --nproc_per_node 
+ivydist -B torch --nproc_per_node main.py
 ```
 
 
 ## Frontend
 
 frontends have not been fully implemetned yet but the torch frontend is under development with the hope of eventually being able to transpile libraries like colossalai and deepspeed to work with other frameworks
+
+## Ring & Tree Based Collective Communication
+
+More efficient collective communication algorithms can be implemented using p2p operations, the `ivy.distributed.stateful` is where these operation can be located
