@@ -36,11 +36,12 @@ def parallel_gelu(x, pc: i_dist.ParallelContext):
 
 pc = i_dist.ParallelContext()
     
-x = ivy.random.random_norma(shape=(pc.world_size,10))
+x = ivy.random.random_normal(shape=(pc.world_size,10))
 
 out1 = parallel_gelu(x, pc)
+
 if pc.rank == 0:
-    print(out)
+    print(out.shape)
 
 # pmap does the same thing
 out2 = i_dist.pmap(ivy.gelu)(x)
@@ -49,11 +50,18 @@ assert ivy.all(out1 == out2)
 ```
 
 ```bash
-#run on 192.168.0.100
+#2 GPUS/TPUS/CPU cores
+ivyrun -B torch --nproc_per_node 2 main.py
+
+#2 Nodes, 16 GPUS (only needs to be called on 192.168.0.100)
 ivyrun -B torch -H 192.168.0.100,192.169.0.101 --nproc_per_node 8 main.py
 ```
 
 As shown above you write your code with i_dist functions and  and use a launcher to run it. The launcher deals with creating a process for each compute accelerator. You can also use other launchers like torchrun and mpirun when using the appropriate framework for that launcher.
+
+The `ParallelContext` context class is a singleton dict like class, that keeps track of useful information about the current job like world_size, global_rank, etc.
+
+Keep in mind the number --nproc_per_node must be less or equal to than the number of CPU cores. When running with multiple hosts the launcher only needs to be called on a single node, but that node needs passwordless ssh access to each other node in the cluster.
 
 If you want to change the backend framework you can do so as follows:
 
@@ -70,6 +78,35 @@ ivyrun -B numpy -H 192.168.0.100,192.169.0.101 --nproc_per_node 8 main.py
 even though numpy uses mpirun rather than torchrun there is no need to change any args except the given backend.
 
 Its important to know that as of now when using `ivy.distributed` changing backends in the middle of your code is not supported due to different frameworks using different launchers.
+
+ivy.distributed also supports custom process groups:
+
+```python
+import ivy
+import ivy.distributed as i_dist
+
+ivy.set_backend("torch")
+i_dist.init_dist(backend="nccl")
+
+group = i_dist.Group([2,3,7,5])
+
+x = ivy.random.random_normal(shape=(group.size,10))
+
+#global rank 2
+if group.rank == 0:
+    i_dist.send(x, group=group, dst=2)
+
+#global rank 7
+if group.rank == 2:
+    # you could pass x directly to the x_buffer and the data would not be over written
+    out = ivy.empty_like(x)
+    out = i_dist.recv(x_buffer=out, group=group, src=0)
+
+
+
+
+
+```
 
 ## Frontend
 
