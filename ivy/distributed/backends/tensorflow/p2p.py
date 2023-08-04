@@ -15,3 +15,7 @@ def recv(x_buffer: cp.ndarray, src: int, tag: int, group: MPI.Comm = MPI.COMM_WO
     out = cp.empty_like(x_buffer, dtype=x_buffer.dtype)
     group.Recv(out, source=src, tag=tag)
     return out
+
+
+def barrier(group: MPI.Comm = MPI.COMM_WORLD):
+    group.Barrier()

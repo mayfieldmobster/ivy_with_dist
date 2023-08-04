@@ -44,6 +44,11 @@ def all_to_all(x: cp.ndarray, group: MPI.Comm = MPI.COMM_WORLD) -> cp.ndarray:
     return tensor_out
 
 
+def broadcast(x: cp.ndarray, group: MPI.Comm = MPI.COMM_WORLD, src: int = 0):
+    group.Bcast(x, root=src)
+    return x
+
+
 @to_dlpack_and_back
 def gather(
     x: cp.ndarray,
@@ -79,3 +84,14 @@ def reduce(
     if op_handler.op.name == "MEAN" and group.rank == dst:
         tensor_out = tensor_out / group.Get_size()
     return tensor_out
+
+
+@to_dlpack_and_back
+def scatter(
+    out_buffer: cp.ndarray,
+    x: cp.ndarray,
+    group: MPI.Comm = MPI.COMM_WORLD,
+    src: int = 0,
+):
+    group.Scatter(x, out_buffer, root=src)
+    return out_buffer

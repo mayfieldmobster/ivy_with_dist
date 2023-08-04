@@ -23,5 +23,6 @@ def recv(
     ivy.current_dist_backend().send(x_buffer=x_buffer, src=src, tag=tag, group=group)
 
 
-def sendrecv():
-    ...
+@group_handler
+def barrier(group: Group):
+    ivy.current_dist_backend().barrier(group=group)

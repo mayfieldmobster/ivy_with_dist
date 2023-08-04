@@ -65,6 +65,14 @@ def all_to_all(
     return tensor_out
 
 
+def broadcast(
+    x: torch.Tensor, group: dist.ProcessGroup = dist.group.WORLD, src: int = 0
+):
+    work = dist.broadcast(tensor=x, src=src, group=group, async_op=True)
+    work.wait()
+    return x
+
+
 def gather(
     x: torch.Tensor,
     group: dist.ProcessGroup = dist.group.WORLD,
@@ -109,3 +117,16 @@ def reduce(
     work = dist.reduce(x, dst=dst, op=op, group=group, async_op=True)
     work.wait()
     return x
+
+
+def scatter(
+    out_buffer: torch.Tensor,
+    x: torch.Tensor,
+    group: dist.ProcessGroup = dist.group.WORLD,
+    src: int = 0,
+):
+    work = dist.scatter(
+        tensor=out_buffer, scatter_list=x, src=src, group=group, async_op=True
+    )
+    work.wait()
+    return out_buffer

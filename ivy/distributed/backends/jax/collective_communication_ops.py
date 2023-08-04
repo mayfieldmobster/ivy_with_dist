@@ -41,6 +41,10 @@ def all_to_all(x: JaxArray, group: MPI.Comm = MPI.COMM_WORLD) -> JaxArray:
     return token_wrapper(mpi4jax.alltoall)(x, comm=group)
 
 
+def broadcast(x: JaxArray, group: MPI.Comm = MPI.COMM_WORLD, src: int = 0):
+    return token_wrapper(mpi4jax.bcast)(x=x, root=src, comm=group)
+
+
 def gather(
     x: JaxArray,
     axis: int = 0,
@@ -74,3 +78,14 @@ def reduce(
     if op_handler.op.name == "MEAN" and group.rank == dst:
         tensor_out = tensor_out / group.Get_size()
     return tensor_out
+
+
+def scatter(
+    out_buffer: JaxArray, x: JaxArray, group: MPI.Comm = MPI.COMM_WORLD, src: int = 0
+):
+    if group.Get_rank() == src:
+        out = token_wrapper(mpi4jax.scatter)(x=x, root=src, comm=group)
+    else:
+        out = token_wrapper(mpi4jax.scatter)(x=out_buffer, root=src, comm=group)
+
+    return out
