@@ -4,19 +4,19 @@ Every Framework has its own implementation of distributed computing. This makes 
 
 ### Pytorch
 
-Pytorch for example brings the idea of each GPU/TPU getting its own process, similar to how MPI works. Each process communicates to each other through p2p operation and collective communication like allgather
+Pytorch for example brings the idea of each GPU/TPU getting its own process, similar to MPI. Each process communicates to each other through p2p and collective communication operations like send or allgather
 
 ### Jax
 
-In pure Jax each Machine has its own process where it controls multiple GPUs/TPUs, Jax has limited built in methods for multi-GPU/TPU computing such as pmap, xmap, and pjit, Jax also has easy ways to support tensor sharding. The problem is that this is still limited and also hard to integrate with with torch. A solution to this is mpi4jax, mpi4jax gives jax access to mpi operations, thus we can run jax with each GPU/TPU assigned its own process. 
+In pure Jax each Machine has its own process where it controls multiple GPUs/TPUs. Jax has limited built in methods for multi-GPU/TPU computing such as pmap, xmap, and pjit, Jax also  supports tensor sharding. The problem with this is that it is still limited, and completely different to torch making it hard to integrate agnostic property's. A solution to this problem is mpi4jax, mpi4jax gives jax access to mpi operations, thus we can run jax with each GPU/TPU assigned its own process like torch. mpi4jax also supports jax's built in grads functions to work with certain mpi operations.
 
 ### Numpy
 
-Numpy doesn't support any distributed computing by out of the box but we can easily integrate some sort of distributed computing with mpi4py, which once again gives numpy access to mpi operations.
+Numpy doesn't support any distributed computing out of the box, but we can easily integrate some sort of distributed computing strategy with mpi4py, which once gives numpy access to mpi operations.
 
 ### Tensorflow
 
-Tensorflow is a weird one, in order to use tensorflow distributed you have to use strategies. strategies replicate your model's parameters and distribute the training across multiple GPUs/TPUs, although strategies are a very easy way to preform certain high level operations if we want to emulate something more complicated such as a the ZeRO optimizer its near impossible. Theres no easy way to integrate mpi with tensorflow but I found away without moving tensors off the GPUs/TPUs, if we exploit the dlpack tensor structure using this we can move tensorflow tensor into tensors that can be used with mpi4py without moving the tensors into CPU memory. The only problem with this is using grads with this becomes alot more complicated so we recommend using jax or torch backend for training
+Tensorflow is a weird one, in order to use tensorflow distributed computing you have to use strategies. Strategies replicate your model's parameters and distribute the training across multiple GPUs/TPUs. Although strategies are a very easy way to preform certain high level operations if we want to emulate something more complicated such as a the ZeRO optimizer its near impossible. Theres no easy way to integrate mpi with tensorflow without moving tensors off the GPUs/TPUs, if we exploit the dlpack tensor structure using this we can move tensorflow tensor into tensors that can be used with mpi4py without moving the tensors into CPU memory. The only problem with this method is that tensorflows built in grad function doesn't support the mpi operations so doing something like model parallelism things becomes more complicated, so we recommend using jax or torch backend for training.
 
 ## How does it work
 
