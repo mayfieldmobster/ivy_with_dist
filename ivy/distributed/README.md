@@ -102,11 +102,11 @@ if group.rank == 2:
     out = ivy.empty_like(x)
     out = i_dist.recv(x_buffer=out, group=group, src=0)
 
-
-
-
-
 ```
+```bash
+ivydist -B torch --nproc_per_node 
+```
+
 
 ## Frontend
 
