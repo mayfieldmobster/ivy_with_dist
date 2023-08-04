@@ -55,6 +55,20 @@ ivyrun -B torch -H 192.168.0.100,192.169.0.101 --nproc_per_node 8 main.py
 
 As shown above you write your code with i_dist functions and  and use a launcher to run it. The launcher deals with creating a process for each compute accelerator. You can also use other launchers like torchrun and mpirun when using the appropriate framework for that launcher.
 
+If you want to change the backend framework you can do so as follows
+
+```python
+#main.py
+...
+ivy.set_backend("numpy")
+...
+```
+```bash
+ivyrun -B numpy -H 192.168.0.100,192.169.0.101 --nproc_per_node 8 main.py
+```
+
+even though numpy uses mpirun rather than torchrun there is no need to change any args except the given backend
+
 ## Frontend
 
 frontends have not been implemetned yet but the torch frontend is under development with the hope of eventually being able to transpile libraries like colossalai and deepspeed to work with other frameworks
