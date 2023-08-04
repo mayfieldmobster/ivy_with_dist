@@ -79,6 +79,7 @@ def run(
     user_args,
 ):
     hosts = host  # hosts makes more sence
+    os.system(f"export NPROC_PER_NODE={nproc_per_node}")
     if backend is None:
         raise Exception("Backend Must Be Given to ivyrun")
     ivy.set_backend(backend)
@@ -143,7 +144,6 @@ def run(
             sys.exit(0)
     else:
         # allows to get local rank info
-        os.system(f"export NPROC_PER_NODE={nproc_per_node}")
         rank = None
         cmd = ivy.current_dist_backend().cli.launch(
             hosts=hosts,

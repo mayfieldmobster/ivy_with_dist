@@ -82,7 +82,7 @@ def gather(
 ):
     num_processes = group.size()
     # TODO add a method of getting process rank
-    rank = dist.get_group_rank(group, int)
+    rank = group.rank()
     if num_processes == 1:
         return x
     tensor_in = x.contiguous() if axis == 0 else x.transpose(0, axis)
@@ -113,10 +113,11 @@ def reduce(
     group: dist.ProcessGroup = dist.group.WORLD,
     dst: int = 0,
 ):
+    tensor_in = x.contiguous()
     op = op_handler.torch_op
-    work = dist.reduce(x, dst=dst, op=op, group=group, async_op=True)
+    work = dist.reduce(tensor_in, dst=dst, op=op, group=group, async_op=True)
     work.wait()
-    return x
+    return tensor_in
 
 
 def scatter(
@@ -125,6 +126,10 @@ def scatter(
     group: dist.ProcessGroup = dist.group.WORLD,
     src: int = 0,
 ):
+    print("hello: ", x)
+    if isinstance(x, torch.Tensor):
+        x = list(torch.chunk(x, group.size()))
+    print("world: ", x)
     work = dist.scatter(
         tensor=out_buffer, scatter_list=x, src=src, group=group, async_op=True
     )

@@ -270,7 +270,7 @@ def reduce(
         The ouput of the Reduction operation on
     """
     op_handler = OpHandler(op)
-    return ivy.current_dist_backend().gather(
+    return ivy.current_dist_backend().reduce(
         x=x, op_handler=op_handler, group=group, dst=dst
     )
 

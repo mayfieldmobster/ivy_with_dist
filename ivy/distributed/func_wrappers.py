@@ -1,10 +1,13 @@
-import ivy.distributed as i_dist
 import inspect
+from functools import wraps
+
+import ivy.distributed as i_dist
 
 
 def group_handler(fn):
     signature = inspect.signature(fn)
 
+    @wraps(fn)
     def _group_handler(*args, **kwargs):
         bound_args = signature.bind(*args, **kwargs)
         bound_args.apply_defaults()
