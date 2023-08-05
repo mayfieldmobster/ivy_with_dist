@@ -6,14 +6,15 @@ import numpy as np
 
 import ivy
 import ivy.distributed as i_dist
+from ivy.func_wrapper import to_native_arrays_and_back
 
 
 def data_frag(*args, in_axes: Union[int, Sequence[int]], num_devices: int):
     new_args = [[] for _ in range(num_devices)]
-    axes = (in_axes,) * len(args) if isinstance(in_axes, int) else in_axes
+    in_axes = (in_axes,) * len(args) if isinstance(in_axes, int) else in_axes
     if len(in_axes) != len(args):
         raise ValueError("len of in_axes must match len of args")
-    for d, a in zip(axes, args):
+    for d, a in zip(in_axes, args):
         if not isinstance(a, np.ndarray):
             raise TypeError("Only tensors can be mapped")
         if d is not None:
@@ -36,13 +37,14 @@ def pmap(
     group: MPI.Comm = MPI.COMM_WORLD,
     dst: int = 0
 ) -> Callable:
-    comm = group.ranks_to_jax_devices()
+    comm = group
 
     rank = comm.Get_rank()
     num_processes = comm.Get_size()
 
     # not using pmap bacause mpi is easier and more consistent
     @wraps(fn)
+    @to_native_arrays_and_back
     def _pmap(*args, **kwargs):
         if num_processes == 1:
             return ivy.vmap(fn, in_axes=in_axes, out_axes=out_axes)(*args, **kwargs)

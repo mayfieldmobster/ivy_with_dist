@@ -6,15 +6,16 @@ import torch.distributed as dist
 
 import ivy
 import ivy.distributed as i_dist
+from ivy.func_wrapper import to_native_arrays_and_back
 
 
 # TODO accept nestwed inputs cmap(f)((x,y),z)
 def data_frag(*args, in_axes: Union[int, tuple], num_devices: int):
     new_args = [[] for _ in range(num_devices)]
-    axes = (in_axes,) * len(args) if isinstance(in_axes, int) else in_axes
+    in_axes = (in_axes,) * len(args) if isinstance(in_axes, int) else in_axes
     if len(in_axes) != len(args):
         raise ValueError("len of in_axes must match len of args")
-    for d, a in zip(axes, args):
+    for d, a in zip(in_axes, args):
         if not isinstance(a, torch.Tensor):
             raise TypeError("Only tensors can be mapped")
         if d is not None:
@@ -45,13 +46,11 @@ def pmap(
     group: Union[i_dist.Group, None] = None,
     dst: int = 0
 ) -> Callable:
-    if isinstance(group, i_dist.Group):
-        group = group.ranks_to_torch_group()
-
     rank = dist.get_rank(group=group)
     num_processes = dist.get_world_size(group=group)
 
     @wraps(fn)
+    @to_native_arrays_and_back
     def wrapper(*args, **kwargs):
         if num_processes == 1:
             return ivy.vmap(fn, in_axes=in_axes, out_axes=out_axes)(*args, **kwargs)
