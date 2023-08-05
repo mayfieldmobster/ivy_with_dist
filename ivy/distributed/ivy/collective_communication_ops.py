@@ -34,7 +34,7 @@ class OpHandler:
         if op_name == "SUM":
             return t_dist.ReduceOp.SUM
         elif op_name == "MEAN":
-            return t_dist.ReduceOp.MEAN
+            return t_dist.ReduceOp.SUM
         elif op_name == "MAX":
             return t_dist.ReduceOp.MAX
         elif op_name == "MIN":
@@ -193,6 +193,9 @@ def broadcast(
         On src rank Input Array on all other processes a buffer to recieve the data
     src : int
         source of the broadcast operation
+    group : Union[Group, None]
+        The process group to work on. If None, the default process group will be used,
+        by default None
 
     Returns
     -------
