@@ -16,7 +16,8 @@ def recv(
 ):
     if x_buffer.numel() != 0:
         x_buffer = torch.empty_like(x_buffer)
-    return dist.recv(x_buffer, src=src, group=group, tag=tag)
+    dist.recv(x_buffer, src=src, group=group, tag=tag)
+    return x_buffer
 
 
 def barrier(group: dist.ProcessGroup = dist.group.WORLD):

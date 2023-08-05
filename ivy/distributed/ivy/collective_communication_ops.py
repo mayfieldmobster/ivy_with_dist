@@ -330,10 +330,10 @@ def reduce_scatter(
     x: Union[ivy.Array, ivy.NativeArray],
     op: Union[str, IvyReduceOp],
     *,
-    group=Union[Group, None],
+    group: Union[Group, None] = None,
     out: Union[ivy.Array, None] = None,
 ):
     op_handler = OpHandler(op)
-    ivy.current_dist_backend().reduce_scatter(
+    return ivy.current_dist_backend().reduce_scatter(
         x=x, op_handler=op_handler, group=group, out=out
     )

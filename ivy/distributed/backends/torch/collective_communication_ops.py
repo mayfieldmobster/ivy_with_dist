@@ -105,7 +105,6 @@ def gather(
     if num_processes == 1:
         return x
     tensor_in = x.contiguous() if axis == 0 else x.transpose(0, axis).contiguous()
-
     if dst == rank:
         if out is None:
             tensor_out = [
@@ -122,9 +121,9 @@ def gather(
             else:
                 raise Exception("out must be list of tensors or tensor")
         work = dist.gather(tensor_in, tensor_out, dst=dst, group=group, async_op=True)
+        work.wait()
         tensor_out = ivy.concat(tensor_out)  # maybe change 0 to axis var
         tensor_out = tensor_out if axis == 0 else tensor_out.transpose(0, axis)
-        work.wait()
         if tiled:
             tensor_out = ivy.split(
                 tensor_out, num_or_size_splits=num_processes, axis=axis
@@ -185,7 +184,8 @@ def reduce_scatter(
     out=None,
 ):
     tensor_out = []
-    x = ivy.split(x, num_or_size_splits=group.size())
+    num_processes = group.size()
+    x = ivy.split(x, num_or_size_splits=num_processes)
     for dst, tensor_in in enumerate(x):
         tensor_out.append(
             reduce(tensor_in, op_handler=op_handler, group=group, dst=dst, out=out)
