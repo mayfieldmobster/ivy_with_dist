@@ -12,7 +12,7 @@ from ._func_wrapper import token_wrapper
 def all_reduce(
     x: JaxArray, op_handler: i_dist.OpHandler, group: MPI.Comm = MPI.COMM_WORLD
 ) -> JaxArray:
-    op = op_handler.jax_op
+    op = op_handler.mpi_op
     out = token_wrapper(mpi4jax.allreduce)(x, op=op, comm=group)
     if op_handler.op.name == "MEAN":
         out = out / group.Get_size()
@@ -73,7 +73,7 @@ def reduce(
     group: MPI.Comm = MPI.COMM_WORLD,
     dst: int = 0,
 ):
-    op = op_handler.jax_op
+    op = op_handler.mpi_op
     tensor_out = token_wrapper(mpi4jax.reduce)(x, op=op, comm=group, root=dst)
     if op_handler.op.name == "MEAN" and group.rank == dst:
         tensor_out = tensor_out / group.Get_size()
@@ -88,4 +88,15 @@ def scatter(
     else:
         out = token_wrapper(mpi4jax.scatter)(x=out_buffer, root=src, comm=group)
 
+    return out
+
+
+def reduce_scatter(
+    x: JaxArray, op_handler: i_dist.OpHandler, group: MPI.Comm = MPI.COMM_WORLD
+):
+    x = ivy.split(x, num_or_size_splits=group.Get_size())
+    for dst, tensor_in in enumerate(x):
+        out = reduce(tensor_in, op_handler=op_handler, group=group, dst=dst)
+
+    i_dist.barrier(group=group)
     return out

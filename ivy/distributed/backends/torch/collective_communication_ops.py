@@ -139,3 +139,16 @@ def scatter(
     )
     work.wait()
     return out_buffer
+
+
+def reduce_scatter(
+    x: torch.Tensor,
+    op_handler: i_dist.OpHandler,
+    group: dist.ProcessGroup = dist.group.WORLD,
+):
+    x = ivy.split(x, num_or_size_splits=group.size())
+    for dst, tensor_in in enumerate(x):
+        out = reduce(tensor_in, op_handler=op_handler, group=group, dst=dst)
+
+    i_dist.barrier(group=group)
+    return out

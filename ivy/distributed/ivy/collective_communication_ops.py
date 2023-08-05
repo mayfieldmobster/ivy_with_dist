@@ -17,6 +17,10 @@ class IvyReduceOp(Enum):
     MEAN = "MEAN"
     MAX = "MAX"
     MIN = "MIN"
+    PRODUCT = "PRODUCT"
+    BAND = "BAND"
+    BOR = "BOR"
+    BXOR = "BXOR"
 
 
 class OpHandler:
@@ -39,48 +43,40 @@ class OpHandler:
             return t_dist.ReduceOp.MAX
         elif op_name == "MIN":
             return t_dist.ReduceOp.MIN
+        elif op_name == "PRODUCT":
+            return t_dist.ReduceOp.PRODUCT
+        elif op_name == "BAND":
+            return t_dist.ReduceOp.BAND
+        elif op_name == "BOR":
+            return t_dist.ReduceOp.BOR
+        elif op_name == "BXOR":
+            return t_dist.ReduceOp.BXOR
+        else:
+            raise TypeError(f"Given Op: {op_name} not supported")
 
     @property
-    def tensorflow_op(self):
-        import tensorflow.distribute as tf_dist
+    def mpi_op(self):
+        import mpi4py.MPI as MPI
 
         op_name = self.op.name
         if op_name == "SUM":
-            return tf_dist.ReduceOp.SUM
+            return MPI.SUM
         elif op_name == "MEAN":
-            return tf_dist.ReduceOp.MEAN
+            return MPI.SUM
         elif op_name == "MAX":
-            raise ValueError("Tensorflow backend doesnt support MAX reduce op")
+            return MPI.MAX
         elif op_name == "MIN":
-            raise ValueError("Tensorflow backend doesnt support MIN reduce op")
-
-    @property
-    def jax_op(self):
-        import mpi4py
-
-        op_name = self.op.name
-        if op_name == "SUM":
-            return mpi4py.MPI.SUM
-        elif op_name == "MEAN":
-            return mpi4py.MPI.SUM
-        elif op_name == "MAX":
-            return mpi4py.MPI.MAX
-        elif op_name == "MIN":
-            return mpi4py.MPI.MIN
-
-    @property
-    def numpy_op(self):
-        import mpi4py
-
-        op_name = self.op.name
-        if op_name == "SUM":
-            return mpi4py.MPI.SUM
-        elif op_name == "MEAN":
-            return mpi4py.MPI.SUM
-        elif op_name == "MAX":
-            return mpi4py.MPI.MAX
-        elif op_name == "MIN":
-            return mpi4py.MPI.MIN
+            return MPI.MIN
+        elif op_name == "PRODUCT":
+            return MPI.PROD
+        elif op_name == "BAND":
+            return MPI.BAND
+        elif op_name == "BOR":
+            return MPI.BOR
+        elif op_name == "BXOR":
+            return MPI.BXOR
+        else:
+            raise TypeError(f"Given Op: {op_name} not supported")
 
 
 @handle_nestable
@@ -320,11 +316,14 @@ def scatter(
     )
 
 
+@handle_nestable
+@group_handler
+@to_native_arrays_and_back
 def reduce_scatter(
     x: Union[ivy.Array, ivy.NativeArray],
     op: Union[str, IvyReduceOp],
     *,
     group=Union[Group, None],
 ):
-    OpHandler(op)
-    ivy.current_dist_backend()
+    op_handler = OpHandler(op)
+    ivy.current_dist_backend().reduce_scatter(x=x, op_handler=op_handler, group=group)

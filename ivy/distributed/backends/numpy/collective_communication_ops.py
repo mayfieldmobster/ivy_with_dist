@@ -9,7 +9,7 @@ import ivy.distributed as i_dist
 def all_reduce(
     x: np.ndarray, op_handler: i_dist.OpHandler, group: MPI.Comm = MPI.COMM_WORLD
 ) -> np.ndarray:
-    op = op_handler.numpy_op
+    op = op_handler.mpi_op
     tensor_out = np.empty_like(x, dtype=x.dtype)
     group.Allreduce(x, tensor_out, op)
     if op_handler.op.name == "MEAN":
@@ -72,7 +72,7 @@ def reduce(
     group: MPI.Comm = MPI.COMM_WORLD,
     dst: int = 0,
 ):
-    op = op_handler.numpy_op
+    op = op_handler.mpi_op
     tensor_out = np.empty_like(x, dtype=x.dtype)
     group.Reduce(x, tensor_out, op=op, root=dst)
     if op_handler.op.name == "MEAN" and group.rank == dst:
@@ -88,3 +88,14 @@ def scatter(
 ):
     group.Scatter(x, out_buffer, root=src)
     return out_buffer
+
+
+def reduce_scatter(
+    x: np.ndarray, op_handler: i_dist.OpHandler, group: MPI.Comm = MPI.COMM_WORLD
+):
+    x = ivy.split(x, num_or_size_splits=group.Get_size())
+    for dst, tensor_in in enumerate(x):
+        out = reduce(tensor_in, op_handler=op_handler, group=group, dst=dst)
+
+    i_dist.barrier(group=group)
+    return out
