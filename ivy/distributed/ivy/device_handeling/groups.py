@@ -16,6 +16,10 @@ class Group:
     def size(self):
         return self.__len__()
 
+    @property
+    def rank(self):
+        return ivy.current_dist_backend()._group._rank(self.to_native_group())
+
     def __getitem__(self, idx):
         return self.ranks[idx]
 
