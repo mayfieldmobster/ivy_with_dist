@@ -88,7 +88,7 @@ import ivy.distributed as i_dist
 ivy.set_backend("torch")
 i_dist.init_dist(backend="nccl")
 
-group = i_dist.Group([2,3,7,5])
+group = i_dist.Group([2,3,5,7])
 
 x = ivy.random.random_normal(shape=(group.size,10))
 
@@ -96,7 +96,7 @@ x = ivy.random.random_normal(shape=(group.size,10))
 if group.rank == 0:
     i_dist.send(x, group=group, dst=2)
 
-#global rank 7
+#global rank 5
 if group.rank == 2:
     # you could pass x directly to the x_buffer and the data would not be over written
     out = ivy.empty_like(x)

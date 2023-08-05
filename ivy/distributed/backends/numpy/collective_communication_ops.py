@@ -34,8 +34,8 @@ def all_gather(
     permutation = list(range(ivy.get_num_dims(x)))
     permutation[axis] = 0
     permutation[0] = axis
-    tensor_in = x if axis == 0 else x.transpose(permutation)
-    tensor_out_shape = (group.Get_size(), *x.shape)
+    tensor_in = x if axis == 0 else np.transpose(x, permutation)
+    tensor_out_shape = (group.Get_size(), *tensor_in.shape)
     if out is None:
         tensor_out = np.empty(tensor_out_shape, dtype=tensor_in.dtype)
     else:
@@ -49,8 +49,7 @@ def all_gather(
             ), "given output tensor is incorrect shape"
             tensor_out = out
     group.Allgather(tensor_in, tensor_out)
-    tensor_out = ivy.concat(tensor_out)
-    out = tensor_out if axis == 0 else tensor_out.transpose(permutation)
+    out = tensor_out if axis == 0 else np.transpose(x, permutation)
     if tiled:
         out = ivy.split(out, num_or_size_splits=group.Get_size(), axis=axis)
     return out
@@ -82,8 +81,8 @@ def gather(
     permutation = list(range(np.ndim(x)))
     permutation[axis] = 0
     permutation[0] = axis
-    tensor_in = x if axis == 0 else x.transpose(permutation)
-    out_shape = (group.Get_size(), *x.shape)
+    tensor_in = x if axis == 0 else np.transpose(x, permutation)
+    out_shape = (group.Get_size(), *tensor_in.shape)
     if group.Get_rank() == dst:
         if out is None:
             tensor_out = np.empty(out_shape, dtype=x.dtype)
@@ -100,7 +99,7 @@ def gather(
     group.Gather(tensor_in, tensor_out, root=dst)
     if group.Get_rank() == dst:
         tensor_out = ivy.concat(tensor_out)
-        out = tensor_out if axis == 0 else tensor_out.transpose(permutation)
+        out = tensor_out if axis == 0 else np.transpose(tensor_out, permutation)
         if tiled:
             out = ivy.split(out, num_or_size_splits=group.Get_size(), axis=axis)
     else:

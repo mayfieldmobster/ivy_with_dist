@@ -18,8 +18,7 @@ def all_reduce(
 ) -> torch.Tensor:
     op = op_handler.torch_op
     tensor_in = torch.clone(x).contiguous()
-    work = dist.all_reduce(tensor_in, op, group=group, async_op=True)
-    work.wait()
+    dist.all_reduce(tensor_in, op, group=group)
     if out is not None:
         out[:] = tensor_in
         del tensor_in
@@ -52,8 +51,7 @@ def all_gather(
         else:
             raise Exception("out must be list of tensors or tensor")
 
-    work = dist.all_gather(tensor_out, tensor_in, group=group, async_op=True)
-    work.wait()
+    dist.all_gather(tensor_out, tensor_in, group=group)
     tensor_out = ivy.concat(tensor_out)
     tensor_out = tensor_out if axis == 0 else tensor_out.transpose(0, axis)
 
@@ -72,13 +70,11 @@ def all_to_all(
         tensor_out = torch.empty(out_shape, dtype=x.dtype, device=x.device)
     else:
         tensor_out = out
-    work = dist.all_to_all_single(
+    dist.all_to_all_single(
         tensor_out,
         tensor_in,
         group=group,
-        async_op=True,
     )
-    work.wait()
     return tensor_out
 
 
@@ -86,8 +82,7 @@ def broadcast(
     x: torch.Tensor, group: dist.ProcessGroup = dist.group.WORLD, src: int = 0
 ):
     tensor_in = x.contiguous()
-    work = dist.broadcast(tensor=tensor_in, src=src, group=group, async_op=True)
-    work.wait()
+    dist.broadcast(tensor=tensor_in, src=src, group=group)
     return tensor_in
 
 
@@ -120,8 +115,8 @@ def gather(
                 tensor_out = out
             else:
                 raise Exception("out must be list of tensors or tensor")
-        work = dist.gather(tensor_in, tensor_out, dst=dst, group=group, async_op=True)
-        work.wait()
+        dist.gather(tensor_in, tensor_out, dst=dst, group=group)
+        print("check ", tensor_out[0].shape)
         tensor_out = ivy.concat(tensor_out)  # maybe change 0 to axis var
         tensor_out = tensor_out if axis == 0 else tensor_out.transpose(0, axis)
         if tiled:
@@ -130,8 +125,7 @@ def gather(
             )
         return tensor_out
     else:
-        work = dist.gather(tensor_in, dst=dst, group=group, async_op=True)
-        work.wait()
+        dist.gather(tensor_in, dst=dst, group=group)
         return True
 
 
@@ -144,8 +138,7 @@ def reduce(
 ):
     tensor_in = torch.clone(x).contiguous()
     op = op_handler.torch_op
-    work = dist.reduce(tensor_in, dst=dst, op=op, group=group, async_op=True)
-    work.wait()
+    dist.reduce(tensor_in, dst=dst, op=op, group=group)
     if group.rank() == dst:
         if out is not None:
             out[:] = tensor_in
@@ -170,10 +163,7 @@ def scatter(
         tensor_in = list(torch.chunk(tensor_in, group.size()))
     else:
         tensor_in = x
-    work = dist.scatter(
-        tensor=out_buffer, scatter_list=tensor_in, src=src, group=group, async_op=True
-    )
-    work.wait()
+    dist.scatter(tensor=out_buffer, scatter_list=tensor_in, src=src, group=group)
     return out_buffer
 
 

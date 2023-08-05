@@ -4,7 +4,7 @@ import ivy.distributed as i_dist
 
 def _to_native_group(ranks):
     context = i_dist.ParallelContext()
-    if context.get_world_size() == len(ranks):
+    if list(range(context.get_world_size())) == ranks:
         return t_dist.group.WORLD
     return t_dist.new_group(ranks)
 
