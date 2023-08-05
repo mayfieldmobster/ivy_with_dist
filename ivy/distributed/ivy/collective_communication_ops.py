@@ -287,6 +287,7 @@ def reduce(
     )
 
 
+# TODO add support fro axis arg
 @handle_nestable
 @group_handler
 @to_native_arrays_and_back

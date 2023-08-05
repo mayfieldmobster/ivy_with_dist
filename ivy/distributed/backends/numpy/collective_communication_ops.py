@@ -147,10 +147,15 @@ def reduce_scatter(
     out=None,
 ):
     tensor_out = []
-    x = ivy.split(x, num_or_size_splits=group.Get_size())
+    num_processes = group.Get_size()
+    x = ivy.split(x, num_or_size_splits=num_processes)
+    outs = [None] * num_processes
+    outs[group.Get_rank()] = out
     for dst, tensor_in in enumerate(x):
         tensor_out.append(
-            reduce(tensor_in, op_handler=op_handler, group=group, dst=dst, out=out)
+            reduce(
+                tensor_in, op_handler=op_handler, group=group, dst=dst, out=outs[dst]
+            )
         )
 
     i_dist.barrier(group=group)
