@@ -1,6 +1,4 @@
-from typing import (
-    Union,
-)
+from typing import Union, List
 from enum import Enum
 
 import ivy
@@ -29,6 +27,10 @@ class OpHandler:
         if isinstance(self.op, str):
             self.op = self.op.upper()
             self.op = IvyReduceOp(self.op)
+
+    @property
+    def name(self):
+        return self.op.name
 
     @property
     def torch_op(self):
@@ -87,6 +89,7 @@ def all_reduce(
     op: Union[str, IvyReduceOp],
     *,
     group: Union[Group, None] = None,
+    out: Union[ivy.Array, None] = None,
 ) -> ivy.Array:
     """
     Preforms an AllReduce operation.
@@ -108,7 +111,7 @@ def all_reduce(
     """
     op_handler = OpHandler(op)
     return ivy.current_dist_backend().all_reduce(
-        x=x, op_handler=op_handler, group=group
+        x=x, op_handler=op_handler, group=group, out=out
     )
 
 
@@ -121,6 +124,7 @@ def all_gather(
     *,
     group: Union[Group, None] = None,
     tiled: bool = False,
+    out: Union[ivy.Array, List[ivy.Array], None] = None,
 ) -> ivy.Array:
     """
     Preforms a All gather operation.
@@ -144,7 +148,7 @@ def all_gather(
         the output of the AllGather Operation
     """
     return ivy.current_dist_backend().all_gather(
-        x=x, axis=axis, group=group, tiled=tiled
+        x=x, axis=axis, group=group, tiled=tiled, out=out
     )
 
 
@@ -155,6 +159,7 @@ def all_gather(
 def all_to_all(
     x: Union[ivy.Array, ivy.NativeArray],
     group: Union[Group, None] = None,
+    out: Union[ivy.Array, None] = None,
 ) -> ivy.Array:
     """
     Preforms a AlltoAll operation.
@@ -172,7 +177,7 @@ def all_to_all(
     ivy.Array
         The output of the AlltoAll operation
     """
-    return ivy.current_dist_backend().all_gather(x=x, group=group)
+    return ivy.current_dist_backend().all_gather(x=x, group=group, out=out)
 
 
 @handle_nestable
@@ -215,6 +220,7 @@ def gather(
     group: Union[Group, None] = None,
     tiled: bool = False,
     dst: int = 0,
+    out: Union[ivy.Array, List[ivy.Array], None] = None,
 ) -> Union[ivy.Array, bool]:
     """
     Preform a Gather operation.
@@ -240,7 +246,7 @@ def gather(
         The output of the Gather operation if the processes rank == dst else True
     """
     return ivy.current_dist_backend().gather(
-        x=x, axis=axis, group=group, tiled=tiled, dst=dst
+        x=x, axis=axis, group=group, tiled=tiled, dst=dst, out=out
     )
 
 
@@ -253,6 +259,7 @@ def reduce(
     *,
     group: Union[Group, None] = None,
     dst: int = 0,
+    out: Union[ivy.Array, None] = None,
 ) -> Union[ivy.Array, bool]:
     """
     Preforms a Reuce operation.
@@ -276,7 +283,7 @@ def reduce(
     """
     op_handler = OpHandler(op)
     return ivy.current_dist_backend().reduce(
-        x=x, op_handler=op_handler, group=group, dst=dst
+        x=x, op_handler=op_handler, group=group, dst=dst, out=out
     )
 
 
@@ -324,6 +331,9 @@ def reduce_scatter(
     op: Union[str, IvyReduceOp],
     *,
     group=Union[Group, None],
+    out: Union[ivy.Array, None] = None,
 ):
     op_handler = OpHandler(op)
-    ivy.current_dist_backend().reduce_scatter(x=x, op_handler=op_handler, group=group)
+    ivy.current_dist_backend().reduce_scatter(
+        x=x, op_handler=op_handler, group=group, out=out
+    )

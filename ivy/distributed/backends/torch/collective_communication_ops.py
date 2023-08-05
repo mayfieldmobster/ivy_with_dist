@@ -14,14 +14,20 @@ def all_reduce(
     x: torch.Tensor,
     op_handler: i_dist.OpHandler,
     group: dist.ProcessGroup = dist.group.WORLD,
+    out=None,
 ) -> torch.Tensor:
     op = op_handler.torch_op
-    tensor_in = x.contiguous()
+    tensor_in = torch.clone(x).contiguous()
     work = dist.all_reduce(tensor_in, op, group=group, async_op=True)
     work.wait()
+    if out is not None:
+        out[:] = tensor_in
+        del tensor_in
+    else:
+        out = tensor_in
     if op_handler.name == "MEAN":
-        tensor_in = tensor_in / group.size
-    return tensor_in
+        out = out / group.size
+    return out
 
 
 def all_gather(
@@ -29,13 +35,23 @@ def all_gather(
     axis: int = 0,
     group: dist.ProcessGroup = dist.group.WORLD,
     tiled: bool = False,
+    out=None,
 ):
-    num_processes = group.size
+    num_processes = group.size()
     tensor_in = x.contiguous() if axis == 0 else x.transpose(0, axis).contiguous()
-    tensor_out = [
-        torch.empty(tensor_in.shape, dtype=tensor_in.dtype, device=tensor_in.device)
-        for _ in range(group.size())
-    ]
+    if out is None:
+        tensor_out = [
+            torch.empty(tensor_in.shape, dtype=tensor_in.dtype, device=tensor_in.device)
+            for _ in range(num_processes)
+        ]
+    else:
+        if isinstance(out, torch.Tensor):
+            tensor_out = ivy.split(out, num_or_size_splits=num_processes)
+        elif isinstance(out, list):
+            tensor_out = out
+        else:
+            raise Exception("out must be list of tensors or tensor")
+
     work = dist.all_gather(tensor_out, tensor_in, group=group, async_op=True)
     work.wait()
     tensor_out = ivy.concat(tensor_out)
@@ -48,19 +64,17 @@ def all_gather(
 
 
 def all_to_all(
-    x: torch.Tensor,
-    output_split_sizes=None,
-    input_split_sizes=None,
-    group: dist.ProcessGroup = dist.group.WORLD,
+    x: torch.Tensor, group: dist.ProcessGroup = dist.group.WORLD, out=None
 ) -> ivy.Array:
     tensor_in = x.contiguous()
     out_shape = tensor_in.shape
-    tensor_out = torch.empty(out_shape, dtype=x.dtype, device=x.device)
-    work = dist.all_to_all(
+    if out is None:
+        tensor_out = torch.empty(out_shape, dtype=x.dtype, device=x.device)
+    else:
+        tensor_out = out
+    work = dist.all_to_all_single(
         tensor_out,
         tensor_in,
-        output_split_sizes=output_split_sizes,
-        input_split_sizes=input_split_sizes,
         group=group,
         async_op=True,
     )
@@ -83,6 +97,7 @@ def gather(
     axis: int = 0,
     tiled: bool = False,
     dst: int = 0,
+    out=None,
 ):
     num_processes = group.size()
     # TODO add a method of getting process rank
@@ -92,10 +107,20 @@ def gather(
     tensor_in = x.contiguous() if axis == 0 else x.transpose(0, axis).contiguous()
 
     if dst == rank:
-        tensor_out = [
-            torch.empty(x.shape, device=tensor_in.device, dtype=tensor_in.dtype)
-            for _ in range(group.size())
-        ]
+        if out is None:
+            tensor_out = [
+                torch.empty(
+                    tensor_in.shape, dtype=tensor_in.dtype, device=tensor_in.device
+                )
+                for _ in range(num_processes)
+            ]
+        else:
+            if isinstance(out, torch.Tensor):
+                tensor_out = ivy.split(out, num_or_size_splits=num_processes)
+            elif isinstance(out, list):
+                tensor_out = out
+            else:
+                raise Exception("out must be list of tensors or tensor")
         work = dist.gather(tensor_in, tensor_out, dst=dst, group=group, async_op=True)
         tensor_out = ivy.concat(tensor_out)  # maybe change 0 to axis var
         tensor_out = tensor_out if axis == 0 else tensor_out.transpose(0, axis)
@@ -116,24 +141,36 @@ def reduce(
     op_handler: i_dist.OpHandler,
     group: dist.ProcessGroup = dist.group.WORLD,
     dst: int = 0,
+    out=None,
 ):
-    tensor_in = x.contiguous()
+    tensor_in = torch.clone(x).contiguous()
     op = op_handler.torch_op
     work = dist.reduce(tensor_in, dst=dst, op=op, group=group, async_op=True)
     work.wait()
-    if op_handler.name == "MEAN":
-        tensor_in = tensor_in / group.size
-    return tensor_in
+    if group.rank() == dst:
+        if out is not None:
+            out[:] = tensor_in
+            del tensor_in
+        else:
+            out = tensor_in
+        if op_handler.name == "MEAN":
+            out = out / group.size
+    else:
+        out = None
+    return out
 
 
 def scatter(
     out_buffer: torch.Tensor,
-    x: torch.Tensor,
+    x: torch.Tensor = None,
     group: dist.ProcessGroup = dist.group.WORLD,
     src: int = 0,
 ):
-    tensor_in = x.contiguous()
-    tensor_in = list(torch.chunk(tensor_in, group.size()))
+    if group.rank() == src:
+        tensor_in = x.contiguous()
+        tensor_in = list(torch.chunk(tensor_in, group.size()))
+    else:
+        tensor_in = x
     work = dist.scatter(
         tensor=out_buffer, scatter_list=tensor_in, src=src, group=group, async_op=True
     )
@@ -145,10 +182,14 @@ def reduce_scatter(
     x: torch.Tensor,
     op_handler: i_dist.OpHandler,
     group: dist.ProcessGroup = dist.group.WORLD,
+    out=None,
 ):
+    tensor_out = []
     x = ivy.split(x, num_or_size_splits=group.size())
     for dst, tensor_in in enumerate(x):
-        out = reduce(tensor_in, op_handler=op_handler, group=group, dst=dst)
+        tensor_out.append(
+            reduce(tensor_in, op_handler=op_handler, group=group, dst=dst, out=out)
+        )
 
     i_dist.barrier(group=group)
-    return out
+    return tensor_out[group.rank()]
