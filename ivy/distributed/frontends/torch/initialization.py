@@ -1,5 +1,7 @@
 import ivy.distributed as i_dist
 
+from ivy.utils.exceptions import IvyNotImplementedException
+
 
 def is_available():
     ...
@@ -14,15 +16,15 @@ def is_initialized():
 
 
 def is_mpi_available():
-    ...
+    raise IvyNotImplementedException
 
 
 def is_nccl_available():
-    ...
+    raise IvyNotImplementedException
 
 
 def is_gloo_available():
-    ...
+    raise IvyNotImplementedException
 
 
 def is_torchelastic_launched():

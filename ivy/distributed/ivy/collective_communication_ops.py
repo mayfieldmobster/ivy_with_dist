@@ -6,7 +6,7 @@ from enum import Enum
 import ivy
 from ivy.distributed.ivy.device_handeling.groups import Group
 from ivy.distributed.func_wrappers import group_handler
-from ivy.func_wrapper import to_native_arrays_and_back
+from ivy.func_wrapper import to_native_arrays_and_back, handle_nestable
 from ivy.distributed.ivy.parallel_context import ParallelContext
 
 context = ParallelContext()
@@ -83,6 +83,7 @@ class OpHandler:
             return mpi4py.MPI.MIN
 
 
+@handle_nestable
 @group_handler
 @to_native_arrays_and_back
 def all_reduce(
@@ -115,6 +116,7 @@ def all_reduce(
     )
 
 
+@handle_nestable
 @group_handler
 @to_native_arrays_and_back
 def all_gather(
@@ -151,6 +153,7 @@ def all_gather(
 
 
 # TODO add support for input/output_split_sizes
+@handle_nestable
 @group_handler
 @to_native_arrays_and_back
 def all_to_all(
@@ -176,6 +179,7 @@ def all_to_all(
     return ivy.current_dist_backend().all_gather(x=x, group=group)
 
 
+@handle_nestable
 @group_handler
 @to_native_arrays_and_back
 def broadcast(
@@ -205,6 +209,7 @@ def broadcast(
     return ivy.current_dist_backend().broadcast(x=x, group=group, src=src)
 
 
+@handle_nestable
 @group_handler
 @to_native_arrays_and_back
 def gather(
@@ -243,6 +248,7 @@ def gather(
     )
 
 
+@handle_nestable
 @group_handler
 @to_native_arrays_and_back
 def reduce(
@@ -278,6 +284,7 @@ def reduce(
     )
 
 
+@handle_nestable
 @group_handler
 @to_native_arrays_and_back
 def scatter(
@@ -311,3 +318,13 @@ def scatter(
     return ivy.current_dist_backend().scatter(
         out_buffer=out_buffer, x=x, group=group, src=src
     )
+
+
+def reduce_scatter(
+    x: Union[ivy.Array, ivy.NativeArray],
+    op: Union[str, IvyReduceOp],
+    *,
+    group=Union[Group, None],
+):
+    OpHandler(op)
+    ivy.current_dist_backend()

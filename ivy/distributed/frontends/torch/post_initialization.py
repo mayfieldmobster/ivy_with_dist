@@ -2,11 +2,13 @@ from typing import Union, Optional
 
 import ivy.distributed as i_dist
 
+from ivy.utils.exceptions import IvyNotImplementedException
+
 context = i_dist.ParallelContext()
 
 
 def get_backend(group: Optional[Union[i_dist.Group, i_dist.NativeGroup, None]] = None):
-    ...
+    raise IvyNotImplementedException
 
 
 def get_rank(group: Optional[Union[i_dist.Group, i_dist.NativeGroup, None]] = None):

@@ -3,6 +3,8 @@ from enum import Enum
 import ivy
 import ivy.distributed as i_dist
 
+from ivy.utils.exceptions import IvyNotImplementedException
+
 
 class ReduceOp(Enum):
     SUM = 0
@@ -30,7 +32,7 @@ def broadcast(tensor, src, group=None, async_op=False):
 
 
 def broadcast_object_list(object_list, src=0, group=None, device=None):
-    ...
+    raise IvyNotImplementedException
 
 
 def all_reduce(tensor, op=ReduceOp.SUM, group=None, async_op=False):
@@ -60,7 +62,7 @@ def all_gather_into_tensor(output_tensor, input_tensor, group=None, async_op=Fal
 
 
 def all_gather_object(object_list, obj, group=None):
-    ...
+    raise IvyNotImplementedException
 
 
 def gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
@@ -70,7 +72,7 @@ def gather(tensor, gather_list=None, dst=0, group=None, async_op=False):
 
 
 def gather_object(obj, object_gather_list=None, dst=0, group=None):
-    ...
+    raise IvyNotImplementedException
 
 
 def scatter(tensor, scatter_list=None, src=0, group=None, async_op=False):
@@ -82,7 +84,7 @@ def scatter(tensor, scatter_list=None, src=0, group=None, async_op=False):
 def scatter_object_list(
     scatter_object_output_list, scatter_object_input_list, src=0, group=None
 ):
-    ...
+    raise IvyNotImplementedException
 
 
 def reduce_scatter(output, input_list, op=ReduceOp.SUM, group=None, async_op=False):
@@ -124,3 +126,15 @@ def all_to_all_single(
 def all_to_all(output_tensor_list, input_tensor_list, group=None, async_op=False):
     if async_op:
         ivy.warn("Asynchronous Implementations not supported yet")
+
+    return i_dist.all_to_all(x=input_tensor_list, group=group)
+
+
+def barrier(group=None, async_op=False, device_ids=None):
+    if async_op:
+        ivy.warn("Asynchronous Implementations not supported yet")
+    i_dist.barrier(group=group)
+
+
+def monitored_barrier(group=None, timeout=None, wait_all_ranks=False):
+    raise IvyNotImplementedException

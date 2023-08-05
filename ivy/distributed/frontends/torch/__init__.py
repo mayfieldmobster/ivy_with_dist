@@ -1,3 +1,5 @@
+from . import coll_com_multigpu
+from .coll_com_multigpu import *
 from . import coll_com
 from .coll_com import *
 from . import groups
