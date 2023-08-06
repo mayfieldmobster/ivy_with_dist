@@ -115,8 +115,8 @@ def all_reduce(
     )
 
 
-@handle_nestable
 @group_handler
+@handle_nestable
 @to_native_arrays_and_back
 def all_gather(
     x: Union[ivy.Array, ivy.NativeArray],
@@ -334,6 +334,25 @@ def reduce_scatter(
     group: Union[Group, None] = None,
     out: Union[ivy.Array, None] = None,
 ):
+    """
+    Preform reduce scatter operation.
+
+    Parameters
+    ----------
+    x : Union[ivy.Array, ivy.NativeArray]
+        _description_
+    op : Union[str, IvyReduceOp]
+        _description_
+    group : Union[Group, None], optional
+        _description_, by default None
+    out : Union[ivy.Array, None], optional
+        _description_, by default None
+
+    Returns
+    -------
+    _type_
+        _description_
+    """
     op_handler = OpHandler(op)
     return ivy.current_dist_backend().reduce_scatter(
         x=x, op_handler=op_handler, group=group, out=out

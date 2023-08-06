@@ -16,6 +16,8 @@ def all_reduce(
     group: dist.ProcessGroup = dist.group.WORLD,
     out=None,
 ) -> torch.Tensor:
+    if isinstance(x, list):
+        x = ivy.concat(x)
     op = op_handler.torch_op
     tensor_in = torch.clone(x).contiguous()
     dist.all_reduce(tensor_in, op, group=group)
@@ -116,7 +118,6 @@ def gather(
             else:
                 raise Exception("out must be list of tensors or tensor")
         dist.gather(tensor_in, tensor_out, dst=dst, group=group)
-        print("check ", tensor_out[0].shape)
         tensor_out = ivy.concat(tensor_out)  # maybe change 0 to axis var
         tensor_out = tensor_out if axis == 0 else tensor_out.transpose(0, axis)
         if tiled:

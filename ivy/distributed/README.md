@@ -115,3 +115,7 @@ frontends have not been fully implemetned yet but the torch frontend is under de
 ## Ring & Tree Based Collective Communication
 
 More efficient collective communication algorithms can be implemented using p2p operations, the `ivy.distributed.stateful` is where these operation can be located
+
+## Nested Functions
+
+Currently containers cannot be passed in collective communication functions
