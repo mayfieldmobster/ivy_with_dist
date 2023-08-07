@@ -177,7 +177,7 @@ def all_to_all(
     ivy.Array
         The output of the AlltoAll operation
     """
-    return ivy.current_dist_backend().all_gather(x=x, group=group, out=out)
+    return ivy.current_dist_backend().all_to_all(x=x, group=group, out=out)
 
 
 @handle_nestable

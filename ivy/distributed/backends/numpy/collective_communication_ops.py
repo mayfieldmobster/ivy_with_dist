@@ -49,6 +49,7 @@ def all_gather(
             ), "given output tensor is incorrect shape"
             tensor_out = out
     group.Allgather(tensor_in, tensor_out)
+    tensor_out = ivy.concat(tensor_out)
     out = tensor_out if axis == 0 else np.transpose(x, permutation)
     if tiled:
         out = ivy.split(out, num_or_size_splits=group.Get_size(), axis=axis)

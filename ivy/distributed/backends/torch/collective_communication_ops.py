@@ -27,7 +27,7 @@ def all_reduce(
     else:
         out = tensor_in
     if op_handler.name == "MEAN":
-        out = out / group.size
+        out = out / group.size()
     return out
 
 
@@ -147,7 +147,7 @@ def reduce(
         else:
             out = tensor_in
         if op_handler.name == "MEAN":
-            out = out / group.size
+            out = out / group.size()
     else:
         out = None
     return out
