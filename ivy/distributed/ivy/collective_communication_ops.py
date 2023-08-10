@@ -125,7 +125,7 @@ def all_gather(
     group: Union[Group, None] = None,
     tiled: bool = False,
     out: Union[ivy.Array, List[ivy.Array], None] = None,
-) -> ivy.Array:
+) -> Union[ivy.Array, List[ivy.Array]]:
     """
     Preforms a All gather operation.
 
@@ -221,7 +221,7 @@ def gather(
     tiled: bool = False,
     dst: int = 0,
     out: Union[ivy.Array, List[ivy.Array], None] = None,
-) -> Union[ivy.Array, bool]:
+) -> Union[ivy.Array, List[ivy.Array], None]:
     """
     Preform a Gather operation.
 
@@ -260,7 +260,7 @@ def reduce(
     group: Union[Group, None] = None,
     dst: int = 0,
     out: Union[ivy.Array, None] = None,
-) -> Union[ivy.Array, bool]:
+) -> Union[ivy.Array, None]:
     """
     Preforms a Reuce operation.
 
@@ -279,7 +279,7 @@ def reduce(
     Returns
     -------
     Union[ivy.Array, bool]
-        The ouput of the Reduction operation on
+        The output of the Reduction operation on
     """
     op_handler = OpHandler(op)
     return ivy.current_dist_backend().reduce(
@@ -297,7 +297,7 @@ def scatter(
     *,
     group: Union[Group, None] = None,
     src: int = 0,
-):
+) -> ivy.Array:
     """
     Preforms a Scatter operation.
 
@@ -333,7 +333,7 @@ def reduce_scatter(
     *,
     group: Union[Group, None] = None,
     out: Union[ivy.Array, None] = None,
-):
+) -> ivy.Array:
     """
     Preform reduce scatter operation.
 

@@ -4,7 +4,7 @@ import torch.distributed as dist
 import ivy
 import ivy.distributed as i_dist
 
-context = i_dist.ParallelContext
+context = i_dist.ParallelContext()
 
 
 # TODO add a scalar to vector call of x to check
@@ -16,6 +16,7 @@ def all_reduce(
     group: dist.ProcessGroup = dist.group.WORLD,
     out=None,
 ) -> torch.Tensor:
+    print(context.rank, x)
     if isinstance(x, list):
         x = ivy.concat(x)
     op = op_handler.torch_op
