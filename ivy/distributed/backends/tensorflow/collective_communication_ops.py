@@ -89,7 +89,7 @@ def gather(
     tensor_in = x if axis == 0 else cp.transpose(x, permutation)
     out_shape = (group.Get_size(), *tensor_in.shape)
     if group.Get_rank() == dst:
-        if out is None:
+        if out is not None:
             if isinstance(out, list):
                 if x.shape == out[0].shape:  # else assume already in (1,x,y,..)
                     out = list(map(lambda x: cp.expand_dims(x, axis=0)))
@@ -97,6 +97,8 @@ def gather(
             else:
                 assert out_shape == out.shape, "given output tensor is incorrect shape"
                 tensor_out = out
+        else:
+            tensor_out = cp.empty(out_shape, dtype=x.dtype)
     else:
         tensor_out = None
     group.Gather(tensor_in, tensor_out, root=dst)

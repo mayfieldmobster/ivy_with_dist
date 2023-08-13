@@ -80,6 +80,19 @@ class OpHandler:
         else:
             raise TypeError(f"Given Op: {op_name} not supported")
 
+    def cupy_op(self):
+        op_name = self.op.name
+        if op_name == "SUM":
+            return "sum"
+        elif op_name == "MEAN":
+            return "sum"
+        elif op_name == "MAX":
+            return "max"
+        elif op_name == "MIN":
+            return "min"
+        elif op_name == "PRODUCT":
+            return "prod"
+
 
 @handle_nestable
 @group_handler

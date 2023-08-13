@@ -4,7 +4,7 @@ import os
 import ivy.distributed as i_dist
 
 
-def init_dist():
+def init_dist(**kwargs):
     context = i_dist.ParallelContext()
     context.reset_context()
     context.initilize()
