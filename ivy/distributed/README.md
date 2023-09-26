@@ -1,6 +1,6 @@
 # Ivy Distributed
 
-Every Framework has its own implementation of distributed computing. This makes it hard to have a framework agnostic distributed framework. 
+Every Framework has its own implementation of distributed computing. This makes it hard to have a framework agnostic distributed framework.
 
 ### Pytorch
 
@@ -35,7 +35,7 @@ def parallel_gelu(x, pc: i_dist.ParallelContext):
     return out
 
 pc = i_dist.ParallelContext()
-    
+
 x = ivy.random.random_normal(shape=(pc.world_size,10))
 
 out1 = parallel_gelu(x, pc)
@@ -104,7 +104,7 @@ if group.rank == 2:
 
 ```
 ```bash
-ivydist -B torch --nproc_per_node main.py
+ivydist -B torch --nproc_per_node 2 main.py
 ```
 
 
