@@ -38,3 +38,12 @@ def to_dlpack_and_back(fn):
             return out
 
     return _to_dlpack_and_back
+
+
+def not_in_group(fn):
+    def _not_in_group(*args, **kwargs):
+        if kwargs["group"].g_rank is None:
+            return None
+        return fn(*args, **kwargs)
+
+    return _not_in_group
