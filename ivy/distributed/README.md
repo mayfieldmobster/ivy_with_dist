@@ -104,7 +104,7 @@ if group.rank == 2:
 
 ```
 ```bash
-ivydist -B torch --nproc_per_node 2 main.py
+ivyrun -B torch --nproc_per_node 2 main.py
 ```
 
 

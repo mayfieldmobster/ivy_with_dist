@@ -803,6 +803,7 @@ from . import stateful
 from .stateful import *
 from ivy.utils.inspection import fn_array_spec, add_array_specs
 from . import distributed as distributed
+from .distributed.ivy import *
 
 add_array_specs()
 
