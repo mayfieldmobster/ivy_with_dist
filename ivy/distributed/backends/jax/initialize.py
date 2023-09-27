@@ -9,7 +9,7 @@ import ivy.distributed as i_dist
 def init_dist(**kwargs):
     mpi_comm = MPI.COMM_WORLD
     mpi_comm.Get_size()
-    local_rank = MPI.COMM_WORLD.Get_rank() % os.environ["NPROC_PER_NODE"]
+    local_rank = MPI.COMM_WORLD.Get_rank() % int(os.environ["NPROC_PER_NODE"])
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(local_rank)
 

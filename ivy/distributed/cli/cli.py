@@ -79,7 +79,7 @@ def run(
     user_args,
 ):
     hosts = host  # hosts makes more sence
-    os.system(f"export NPROC_PER_NODE={nproc_per_node}")
+    # os.environ["NPROC_PER_NODE"] = str(nproc_per_node)
     if backend is None:
         raise Exception("Backend Must Be Given to ivyrun")
     ivy.set_backend(backend)
@@ -94,7 +94,7 @@ def run(
         else:
             host_info.load_from_host_str("localhost")
 
-        runner = MultiHostRun()
+        runner = MultiHostRun(nproc_per_node)
         current_path = os.path.abspath(".")
 
         runner.connect(host_info=host_info, work_dir=current_path)

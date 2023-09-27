@@ -2,7 +2,7 @@ from functools import wraps
 
 import ivy.distributed as i_dist
 
-context = i_dist.ParallelContext
+context = i_dist.ParallelContext()
 
 
 def token_wrapper(fn):

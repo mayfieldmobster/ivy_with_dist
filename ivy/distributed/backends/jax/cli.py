@@ -11,7 +11,7 @@ def launch(
     user_args,
     **kwargs,  # collect unsed kwargd
 ):
-    cmd_base = "MPI4JAX_USE_CUDA_MPI=1 mpirun "
+    cmd_base = f"MPI4JAX_USE_CUDA_MPI=1 NPROC_PER_NODE={nproc_per_node} mpirun "
     options = []
     num_processes = num_nodes * nproc_per_node
     if hosts is not None:

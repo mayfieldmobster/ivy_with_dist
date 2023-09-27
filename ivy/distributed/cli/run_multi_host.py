@@ -12,7 +12,7 @@ def is_local_host(address):
     return False
 
 
-def run_on_node(host, host_port, work_dir, send_pipe, recv_pipe):
+def run_on_node(host, host_port, work_dir, send_pipe, recv_pipe, nproc_per_node):
     fab_conn = fabric.Connection(host, port=host_port)
     task = True
 
@@ -20,6 +20,7 @@ def run_on_node(host, host_port, work_dir, send_pipe, recv_pipe):
     for k, v in os.environ.items():
         if v and "\n" not in v:
             env[k] = v
+    env["NPROC_PER_NODE"] = str(nproc_per_node)
 
     env_msg = " ".join([f'{k}="{v}"' for k, v in env.items()])
 
@@ -48,7 +49,8 @@ def run_on_node(host, host_port, work_dir, send_pipe, recv_pipe):
 class MultiHostRun:
     """Inspired by Colossal AI."""
 
-    def __init__(self):
+    def __init__(self, nproc_per_node):
+        self.nproc_per_node = nproc_per_node
         self.process = {}
         self.send_pipes = {}
         self.recv_pipes = {}
@@ -65,6 +67,7 @@ class MultiHostRun:
                     work_dir,
                     worker_send_pipe,
                     worker_recv_pipe,
+                    self.nproc_per_node,
                 ),
             )
             p.start()
